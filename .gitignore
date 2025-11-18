@@ -1,0 +1,15 @@
+# ROS 2 Build Folders
+build/
+install/
+log/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code Settings (Optional, keeps your personal settings out of the repo)
+.vscode/
+
+# System Junk
+.DS_Store
