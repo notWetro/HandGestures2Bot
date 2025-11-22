@@ -1,0 +1,1 @@
+ /Users/niklasfichtner/programming/7_Semester/Mobile-and-Embedded-Development/HandGestures2Bot/flutterapp/.dart_tool/flutter_build/1dd165cbc84bd3fc5b321f2055c8427a/dart_build_result.json: 
