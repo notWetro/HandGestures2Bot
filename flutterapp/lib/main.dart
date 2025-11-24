@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 // Ensure this import points to the file where you created the AndroidView widget
-import 'package:flutterapp/my_camera_view.dart'; 
+import 'package:flutterapp/my_camera_view.dart';
 
 void main() {
   runApp(const MainApp());
@@ -16,9 +16,9 @@ class MainApp extends StatelessWidget {
     return const MaterialApp(
       // ❌ CHANGE THIS LINE:
       // home: Scaffold(body: Center(child: Text('Hello World!'))),
-      
+
       // ✅ TO THIS:
-      home: MyHomePage(), 
+      home: MyHomePage(),
     );
   }
 }
@@ -32,7 +32,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var isPermissionGranted = Platform.isAndroid ? false : true;
-  static const cameraPermission = MethodChannel('camera_permission'); // Fixed typo in variable name
+  static const cameraPermission = MethodChannel(
+    'camera_permission',
+  ); // Fixed typo in variable name
 
   @override
   void initState() {
@@ -45,7 +47,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _getCameraPermissionAndroid() async {
     try {
-      final bool result = await cameraPermission.invokeMethod('getCameraPermission');
+      final bool result = await cameraPermission.invokeMethod(
+        'getCameraPermission',
+      );
       setState(() {
         isPermissionGranted = result;
       });
@@ -54,15 +58,33 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // Ergänze innerhalb deiner State-Klasse:
+
+  void connection_test() {
+    // Platzhalter: Test-Funktion
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: isPermissionGranted
-          ? const SafeArea(child: MyCameraView()) // Your native view wrapper
-          : const SafeArea(
-              child: Center(
-                child: Text("Waiting for camera permission..."),
+          ? SafeArea(
+              child: Stack(
+                children: [
+                  const MyCameraView(), // deine vorhandene Kameraansicht
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    child: ElevatedButton(
+                      onPressed: connection_test,
+                      child: const Text('connection to bot test'),
+                    ),
+                  ),
+                ],
               ),
+            )
+          : const SafeArea(
+              child: Center(child: Text("Waiting for camera permission...")),
             ),
     );
   }
