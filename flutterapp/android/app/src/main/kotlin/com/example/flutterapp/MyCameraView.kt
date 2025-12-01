@@ -13,16 +13,24 @@ import androidx.core.content.ContextCompat
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import io.flutter.plugin.platform.PlatformView
 import java.util.concurrent.Executors
+import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.MethodChannel
 
 // NOTE: HandLandmarkerHelper and OverlayView must be in this package
 
-class MyCameraView(private val activity: MainActivity, id: Int) : PlatformView {
-
+class MyCameraView(
+    private val activity: MainActivity, // <--- CHANGED: We need MainActivity, not just Context
+    messenger: BinaryMessenger, 
+    id: Int
+) : PlatformView {
     private val containerView: FrameLayout
     private lateinit var cameraProviderFuture: com.google.common.util.concurrent.ListenableFuture<ProcessCameraProvider>
     private lateinit var handLandmarkerHelper: HandLandmarkerHelper
     private lateinit var previewView: PreviewView
     private lateinit var overlayView: OverlayView
+    private val gestureRecognizer = GestureRecognizer()
+    private var lastGesture = GestureRecognizer.Gesture.UNKNOWN
+    private val methodChannel: MethodChannel = MethodChannel(messenger, "gesture_channel")
     
     // Executor for the background image analysis
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
@@ -35,10 +43,7 @@ class MyCameraView(private val activity: MainActivity, id: Int) : PlatformView {
         previewView = containerView.findViewById(R.id.preview_view)
         overlayView = containerView.findViewById(R.id.overlay_view)
 
-        // 🔧 FIX 1: Force Camera to use TextureView so Overlay can sit on top
         previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-
-        // 🔧 FIX 2: Explicitly bring Overlay to front just in case
         overlayView.bringToFront()
 
         // 2. Initialize MediaPipe Helper (Your existing code...)
@@ -52,7 +57,19 @@ class MyCameraView(private val activity: MainActivity, id: Int) : PlatformView {
                  override fun onResults(resultBundle: HandLandmarkerHelper.ResultBundle) {
                     activity.runOnUiThread {
                         val firstResult = if (resultBundle.results.isNotEmpty()) resultBundle.results.first() else null
-                        if (firstResult != null) {
+                        if (firstResult != null && firstResult.landmarks().isNotEmpty()) {
+                            val landmarks = firstResult.landmarks()[0]
+                            
+                            // 1. Ask the Brain what gesture this is
+                            val currentGesture = gestureRecognizer.recognize(landmarks)
+
+                            // 2. Only log/send if the gesture CHANGED (to avoid spamming logs 30 times a second)
+                            if (currentGesture != lastGesture && currentGesture != GestureRecognizer.Gesture.UNKNOWN) {
+                                lastGesture = currentGesture
+                                Log.d("GESTURE", "Detected: $currentGesture")
+                                
+                                methodChannel.invokeMethod("onGesture", currentGesture.name)
+                            }
                              overlayView.setResults(
                                 handLandmarkerResults = firstResult, 
                                 imageHeight = resultBundle.inputImageHeight, 

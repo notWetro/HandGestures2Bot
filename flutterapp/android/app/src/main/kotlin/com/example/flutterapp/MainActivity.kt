@@ -24,7 +24,7 @@ class MainActivity: FlutterActivity() {
             .registry
             .registerViewFactory(
                 "my_camera_view",
-                MyCameraViewFactory(this)
+                MyCameraViewFactory(this, flutterEngine.dartExecutor.binaryMessenger)
             )
 
         // 2. Handle the Permission Method Channel

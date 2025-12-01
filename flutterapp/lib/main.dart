@@ -34,9 +34,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var isPermissionGranted = Platform.isAndroid ? false : true;
+  String detectedGesture = "None";
   static const cameraPermission = MethodChannel(
     'camera_permission',
-  ); // Fixed typo in variable name
+  ); 
+
+  static const gestureChannel = MethodChannel('gesture_channel');
 
   @override
   void initState() {
@@ -45,6 +48,15 @@ class _MyHomePageState extends State<MyHomePage> {
     if (Platform.isAndroid) {
       _getCameraPermissionAndroid();
     }
+    gestureChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onGesture') {
+        final String newGesture = call.arguments as String;
+        
+        setState(() {
+          detectedGesture = newGesture;
+        });
+      }
+    });
   }
 
   Future<void> _getCameraPermissionAndroid() async {
@@ -84,14 +96,40 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       body: isPermissionGranted
           ? SafeArea(
               child: Stack(
                 children: [
-                  const MyCameraView(), // deine vorhandene Kameraansicht
+                  const MyCameraView(), 
+                  
+                  // --- NEW UI ELEMENT: GESTURE TEXT ---
+                  Positioned(
+                    top: 20,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Gesture: $detectedGesture",
+                          style: const TextStyle(
+                            color: Colors.white, 
+                            fontSize: 24, 
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // ------------------------------------
+
                   Positioned(
                     bottom: 16,
                     left: 16,

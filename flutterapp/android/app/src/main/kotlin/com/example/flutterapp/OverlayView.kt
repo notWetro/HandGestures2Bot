@@ -108,7 +108,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         }
         
         // LOGGING: Verify coordinates
-        Log.d("OverlayView", "Drawing! Scale: $scaleFactor ViewSize: ${width}x${height} ImageSize: ${imageWidth}x${imageHeight}")
+        // Log.d("OverlayView", "Drawing! Scale: $scaleFactor ViewSize: ${width}x${height} ImageSize: ${imageWidth}x${imageHeight}")
         
         invalidate() // Trigger redraw
     }
