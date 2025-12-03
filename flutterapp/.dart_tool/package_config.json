@@ -15,31 +15,31 @@
     },
     {
       "name": "camera",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/camera-0.11.3",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/camera-0.11.3",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
     {
       "name": "camera_android_camerax",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/camera_android_camerax-0.6.25+1",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/camera_android_camerax-0.6.25+1",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
     {
       "name": "camera_avfoundation",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/camera_avfoundation-0.9.22+6",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/camera_avfoundation-0.9.22+6",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
     {
       "name": "camera_platform_interface",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/camera_platform_interface-2.12.0",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/camera_platform_interface-2.12.0",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
     {
       "name": "camera_web",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/camera_web-0.3.5+2",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/camera_web-0.3.5+2",
       "packageUri": "lib/",
       "languageVersion": "3.8"
     },
@@ -63,13 +63,13 @@
     },
     {
       "name": "cross_file",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/cross_file-0.3.5+1",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/cross_file-0.3.5+1",
       "packageUri": "lib/",
       "languageVersion": "3.8"
     },
     {
       "name": "crypto",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/crypto-3.0.7",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/crypto-3.0.7",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -93,7 +93,7 @@
     },
     {
       "name": "flutter_plugin_android_lifecycle",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.33",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.33",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -105,7 +105,7 @@
     },
     {
       "name": "flutter_web_plugins",
-      "rootUri": "file:///Users/okan/flutter/packages/flutter_web_plugins",
+      "rootUri": "file:///opt/homebrew/Caskroom/flutter/3.24.4/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.8"
     },
@@ -159,43 +159,43 @@
     },
     {
       "name": "permission_handler",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/permission_handler-11.4.0",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/permission_handler-11.4.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
     {
       "name": "permission_handler_android",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/permission_handler_android-12.1.0",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/permission_handler_android-12.1.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
     {
       "name": "permission_handler_apple",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/permission_handler_apple-9.4.7",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/permission_handler_apple-9.4.7",
       "packageUri": "lib/",
       "languageVersion": "2.18"
     },
     {
       "name": "permission_handler_html",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/permission_handler_html-0.1.3+5",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/permission_handler_html-0.1.3+5",
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
     {
       "name": "permission_handler_platform_interface",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/permission_handler_platform_interface-4.3.0",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/permission_handler_platform_interface-4.3.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
     {
       "name": "permission_handler_windows",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/permission_handler_windows-0.2.1",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/permission_handler_windows-0.2.1",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
     {
       "name": "plugin_platform_interface",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/plugin_platform_interface-2.1.8",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/plugin_platform_interface-2.1.8",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
@@ -225,7 +225,7 @@
     },
     {
       "name": "stream_transform",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/stream_transform-2.1.1",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/stream_transform-2.1.1",
       "packageUri": "lib/",
       "languageVersion": "3.1"
     },
@@ -249,7 +249,7 @@
     },
     {
       "name": "typed_data",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/typed_data-1.4.0",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/typed_data-1.4.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
@@ -267,19 +267,19 @@
     },
     {
       "name": "web",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/web-1.1.1",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/web-1.1.1",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
     {
       "name": "web_socket",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/web_socket-1.0.1",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/web_socket-1.0.1",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
     {
       "name": "web_socket_channel",
-      "rootUri": "file:///Users/okan/.pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
+      "rootUri": "file:///Users/niklas/.pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
@@ -292,24 +292,7 @@
   ],
   "generator": "pub",
   "generatorVersion": "3.10.1",
-<<<<<<< HEAD
-<<<<<<< HEAD
-  "flutterRoot": "file:///Users/okan/flutter",
-  "flutterVersion": "3.38.3",
-  "pubCache": "file:///Users/okan/.pub-cache"
-=======
   "flutterRoot": "file:///opt/homebrew/Caskroom/flutter/3.24.4/flutter",
   "flutterVersion": "3.38.3",
   "pubCache": "file:///Users/niklas/.pub-cache"
->>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
-=======
-  "flutterRoot": "file:///opt/homebrew/Caskroom/flutter/3.24.4/flutter",
-  "flutterVersion": "3.38.3",
-  "pubCache": "file:///Users/niklas/.pub-cache"
-=======
-  "flutterRoot": "file:///Users/okan/flutter",
-  "flutterVersion": "3.38.3",
-  "pubCache": "file:///Users/okan/.pub-cache"
->>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
->>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 }
