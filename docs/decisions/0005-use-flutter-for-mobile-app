@@ -1,0 +1,54 @@
+# Use Flutter for Mobile Application
+
+## Context and Problem Statement
+We need a cross-platform mobile application for real-time hand gesture recognition to control the TurtleBot3 robot. The app must access the device camera, run MediaPipe hand landmark detection on-device, and communicate gestures via WebSocket to the ROS2 backend.
+
+## Decision Drivers
+* Must support iOS and Android from single codebase
+* Needs efficient camera access and image processing
+* Must integrate MediaPipe for hand tracking
+* Requires WebSocket communication support
+* Should enable rapid UI development
+* Performance critical for real-time gesture detection
+
+## Considered Options
+* Flutter
+* React Native
+* Native iOS (Swift) + Android (Kotlin)
+
+## Decision Outcome
+Chosen option: **Flutter**, because it provides native performance, excellent camera plugin ecosystem, official MediaPipe support, and enables us to maintain one codebase for both iOS and Android platforms.
+
+### Consequences
+* Good, because we write once and deploy to both iOS and Android
+* Good, because Flutter has mature camera and WebSocket packages
+* Good, because MediaPipe has official Flutter/Dart support
+* Good, because hot reload speeds up UI development
+* Bad, because team needs to learn Dart programming language
+* Bad, because app size is larger than native apps
+
+## Pros and Cons of Options
+
+### Flutter
+* Good: Single codebase for iOS and Android
+* Good: Native performance (compiled to native code)
+* Good: Official MediaPipe Tasks package available
+* Good: Mature camera plugin (`camera` package)
+* Good: WebSocket support (`web_socket_channel`)
+* Good: Fast development with hot reload
+* Bad: Dart language learning curve
+* Bad: Larger app bundle size
+
+### React Native
+* Good: JavaScript/TypeScript (more familiar)
+* Good: Large community
+* Bad: MediaPipe integration less mature
+* Bad: Bridge performance overhead for camera processing
+* Bad: More platform-specific code needed
+
+### Native Development
+* Good: Maximum performance and control
+* Good: Direct platform API access
+* Bad: Need to maintain separate iOS and Android codebases
+* Bad: Duplicated development effort
+* Bad: Harder to keep features in sync
