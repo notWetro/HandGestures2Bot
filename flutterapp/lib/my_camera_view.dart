@@ -23,9 +23,11 @@ class _MyCameraViewState extends State<MyCameraView> {
       creationParamsCodec: const StandardMessageCodec(),
     );
     }else if (Platform.isIOS) {
-      // TODO für OKAN
-      return const Center(
-        child: Text('Camera view is only available on Android.'),
+      return UiKitView(
+        viewType: 'my_camera_view',
+        layoutDirection: TextDirection.ltr,
+        creationParams: creationParams,
+        creationParamsCodec: const StandardMessageCodec(),
       );
     } 
     else {

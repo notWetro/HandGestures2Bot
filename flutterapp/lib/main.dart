@@ -41,7 +41,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    // auch für IOS
     if (Platform.isAndroid) {
       _getCameraPermissionAndroid();
     }
