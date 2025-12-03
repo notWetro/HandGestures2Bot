@@ -523,10 +523,17 @@
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 <<<<<<< HEAD
+<<<<<<< HEAD
 				DEVELOPMENT_TEAM = TZDTSD25UY;
 =======
 				DEVELOPMENT_TEAM = 9S268KC4TY;
 >>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
+=======
+				DEVELOPMENT_TEAM = 9S268KC4TY;
+=======
+				DEVELOPMENT_TEAM = TZDTSD25UY;
+>>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
+>>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -534,10 +541,17 @@
 					"@executable_path/Frameworks",
 				);
 <<<<<<< HEAD
+<<<<<<< HEAD
 				PRODUCT_BUNDLE_IDENTIFIER = com.okan.handgestures;
 =======
 				PRODUCT_BUNDLE_IDENTIFIER = com.niklas.handgestures2bot;
 >>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
+=======
+				PRODUCT_BUNDLE_IDENTIFIER = com.niklas.handgestures2bot;
+=======
+				PRODUCT_BUNDLE_IDENTIFIER = com.okan.handgestures;
+>>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
+>>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -721,10 +735,17 @@
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 <<<<<<< HEAD
+<<<<<<< HEAD
 				DEVELOPMENT_TEAM = TZDTSD25UY;
 =======
 				DEVELOPMENT_TEAM = 9S268KC4TY;
 >>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
+=======
+				DEVELOPMENT_TEAM = 9S268KC4TY;
+=======
+				DEVELOPMENT_TEAM = TZDTSD25UY;
+>>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
+>>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -732,10 +753,17 @@
 					"@executable_path/Frameworks",
 				);
 <<<<<<< HEAD
+<<<<<<< HEAD
 				PRODUCT_BUNDLE_IDENTIFIER = com.okan.handgestures;
 =======
 				PRODUCT_BUNDLE_IDENTIFIER = com.niklas.handgestures2bot;
 >>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
+=======
+				PRODUCT_BUNDLE_IDENTIFIER = com.niklas.handgestures2bot;
+=======
+				PRODUCT_BUNDLE_IDENTIFIER = com.okan.handgestures;
+>>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
+>>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -752,10 +780,17 @@
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 <<<<<<< HEAD
+<<<<<<< HEAD
 				DEVELOPMENT_TEAM = TZDTSD25UY;
 =======
 				DEVELOPMENT_TEAM = 9S268KC4TY;
 >>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
+=======
+				DEVELOPMENT_TEAM = 9S268KC4TY;
+=======
+				DEVELOPMENT_TEAM = TZDTSD25UY;
+>>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
+>>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -763,10 +798,17 @@
 					"@executable_path/Frameworks",
 				);
 <<<<<<< HEAD
+<<<<<<< HEAD
 				PRODUCT_BUNDLE_IDENTIFIER = com.okan.handgestures;
 =======
 				PRODUCT_BUNDLE_IDENTIFIER = com.niklas.handgestures2bot;
 >>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
+=======
+				PRODUCT_BUNDLE_IDENTIFIER = com.niklas.handgestures2bot;
+=======
+				PRODUCT_BUNDLE_IDENTIFIER = com.okan.handgestures;
+>>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
+>>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

@@ -293,6 +293,7 @@
   "generator": "pub",
   "generatorVersion": "3.10.1",
 <<<<<<< HEAD
+<<<<<<< HEAD
   "flutterRoot": "file:///Users/okan/flutter",
   "flutterVersion": "3.38.3",
   "pubCache": "file:///Users/okan/.pub-cache"
@@ -301,4 +302,14 @@
   "flutterVersion": "3.38.3",
   "pubCache": "file:///Users/niklas/.pub-cache"
 >>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
+=======
+  "flutterRoot": "file:///opt/homebrew/Caskroom/flutter/3.24.4/flutter",
+  "flutterVersion": "3.38.3",
+  "pubCache": "file:///Users/niklas/.pub-cache"
+=======
+  "flutterRoot": "file:///Users/okan/flutter",
+  "flutterVersion": "3.38.3",
+  "pubCache": "file:///Users/okan/.pub-cache"
+>>>>>>> 7e07d1f63a2680187d2ac699d2485f3105826e49
+>>>>>>> 77b1c471b2acaaaef17c58e333f3b13b5a9f77fa
 }
