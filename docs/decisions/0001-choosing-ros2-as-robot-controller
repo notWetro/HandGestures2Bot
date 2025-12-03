@@ -1,0 +1,39 @@
+# Choose ROS2 as Robot Middleware
+
+## Context and Problem Statement
+We need a communication and control framework for the simulated (and later physical) TurtleBot3 robot. The system must support distributed nodes, standard robot message types, Gazebo integration, and expandability for vision/voice modules.
+
+## Decision Drivers
+* Must integrate with TurtleBot3 simulation tools
+* Must support multi-node communication
+* Needs strong Python support (gesture server)
+* Should be compatible with real robot hardware
+
+## Considered Options
+* ROS2 Humble
+* ROS1 Noetic
+* Custom TCP/UDP-based framework
+
+## Decision Outcome
+Chosen option: **ROS2 Humble**, because it natively supports TurtleBot3, has DDS-based communication, enables modular nodes, and has direct Gazebo integration.
+
+### Consequences
+* Good, because we get standard topics like `/cmd_vel`, `/scan`, and built-in message types.
+* Good, because the same code can later run on the real robot.
+* Bad, because ROS2 requires learning curve and environment setup.
+
+## Pros and Cons of Options
+
+### ROS2 Humble
+* Good: Native TurtleBot3 + Gazebo support  
+* Good: Modern middleware (DDS)  
+* Good: Python-friendly (rclpy)  
+* Bad: Setup complexity on new systems  
+
+### ROS1
+* Good: Mature ecosystem  
+* Bad: Deprecated and not recommended for new projects
+
+### Custom Networking
+* Good: Full control  
+* Bad: Recreates features ROS2 already solves  

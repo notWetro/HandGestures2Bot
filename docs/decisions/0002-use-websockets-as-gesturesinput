@@ -1,0 +1,38 @@
+# Use WebSockets for Gesture Input
+
+## Context and Problem Statement
+We need the gesture-recognition client to send live commands to the robot server. The communication must work over network and be simple to integrate into Python.
+
+## Decision Drivers
+* Low-latency communication
+* JSON message support
+* Easy integration with Python
+* Works over local network or cloud
+
+## Considered Options
+* WebSockets
+* REST API (HTTP)
+* MQTT
+
+## Decision Outcome
+Chosen option: **WebSockets**, because they allow persistent, real-time bidirectional messaging, making them ideal for gesture streaming.
+
+### Consequences
+* Good: Real-time commands  
+* Good: Simple JSON protocol  
+* Bad: Requires async programming  
+
+## Pros and Cons
+
+### WebSockets
+* Good: Bi-directional and real-time  
+* Good: Works perfectly with Python `websockets` library  
+* Bad: More complex than HTTP  
+
+### REST API
+* Good: Simple  
+* Bad: Too slow for real-time gestures  
+
+### MQTT
+* Good: Lightweight pub/sub  
+* Bad: Requires broker, extra complexity  

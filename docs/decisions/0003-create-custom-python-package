@@ -1,0 +1,37 @@
+# Create Custom ROS2 ament_python Package
+
+## Context and Problem Statement
+Our robot logic (gesture handling → velocity publishing) must run inside ROS2. A reusable, installable package is needed.
+
+## Decision Drivers
+* Must integrate with `ros2 run`
+* Must support Python
+* Must publish to `/cmd_vel`
+* Must contain multiple modules (server, handler)
+
+## Considered Options
+* ament_python package
+* ament_cmake package
+* No ROS package (pure Python)
+
+## Decision Outcome
+Chosen option: **ament_python**, because the entire robot logic is Python-based and ROS2 provides direct tooling for Python packages.
+
+### Consequences
+* Good: Simple development and deployment  
+* Good: Works with standard ROS2 tools (colcon, ros2 run)  
+* Bad: Requires proper `setup.py` and `setup.cfg`  
+
+## Pros and Cons
+
+### ament_python
+* Good: Python-native  
+* Good: Easy to extend  
+
+### ament_cmake
+* Good: For C++  
+* Bad: Too heavy for Python project  
+
+### Pure Python
+* Good: No ROS packaging  
+* Bad: Cannot use ROS2 runtime tools  

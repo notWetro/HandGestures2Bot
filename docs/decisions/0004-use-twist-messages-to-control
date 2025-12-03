@@ -1,0 +1,36 @@
+# Use Twist Messages for Robot Motion
+
+## Context and Problem Statement
+The TurtleBot3 robot must move according to gestures. We need a control method that integrates with ROS2 and Gazebo.
+
+## Decision Drivers
+* TurtleBot3 listens to `/cmd_vel`
+* Standard message type required
+* Works in simulation and on real hardware
+
+## Considered Options
+* geometry_msgs/Twist
+* Custom motion message
+* Direct Gazebo force application
+
+## Decision Outcome
+Chosen option: **Twist messages**, because they are the standard way to control ROS-based differential drive robots.
+
+### Consequences
+* Good: Works instantly with TurtleBot3  
+* Good: Compatible with real hardware  
+* Bad: Velocity-only control (no path planning)  
+
+## Pros and Cons
+
+### Twist
+* Good: Native support  
+* Good: Zero additional configuration  
+
+### Custom Message
+* Good: More flexibility  
+* Bad: Requires custom controllers  
+
+### Gazebo Force Application
+* Good: Physics-level control  
+* Bad: Not portable to real robot  
