@@ -1,0 +1,44 @@
+# Use Native with MediaPipe & Template Matching
+
+## Context and Problem Statement
+We are building a hybrid Flutter application to control a robot via real-time hand gestures. The system requires high-performance tracking and the ability for users to define custom gestures at runtime. Existing solutions on `pub.dev` were found to be outdated or incompatible, and processing video frames directly in Dart caused performance bottlenecks.
+
+## Decision Drivers
+* High-performance video processing
+* Requirement User-defined gestures
+* Stability
+* Precision
+
+## Considered Options
+* Native + MediaPipe
+* Existing Flutter Packages (`pub.dev`)
+* Pure Dart Implementation
+* Cloud-Based Processing
+* Google ML Kit
+
+## Decision Outcome
+Chosen option: **Native + MediaPipe**, because it offloads heavy image processing to the Native thread to keep the UI smooth, and allows us to implement custom "Template Matching" logic that existing plugins do not support.
+
+### Consequences
+* Good: High performance (No UI lag)
+* Good: Users can teach new gestures instantly
+* Bad: Increased complexity (requires Kotlin/Swift & Dart code)
+
+## Other Options
+
+### Existing Flutter Packages
+* Good: Fast initial implementation
+* Bad: Many packages on `pub.dev` are outdated or unmaintained
+* Bad: Lack internal access to insert custom "Template Matching" logic
+
+### Pure Dart Implementation
+* Good: Single codebase (Dart only)
+* Bad: Massive performance cost transferring video frames across the bridge
+
+### Cloud-Based Processing
+* Good: Powerful inference capabilities
+* Bad: Network latency makes real-time bot control impossible
+
+### Google ML Kit
+* Good: Simple API integration
+* Bad: Less detailed hand skeleton compared to MediaPipe
