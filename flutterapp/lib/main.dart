@@ -65,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       debugPrint('Connecting to ws://localhost:8765...');
       final channel = WebSocketChannel.connect(
-        Uri.parse('ws://localhost:8765'),
+        Uri.parse('ws://172.20.10.2:8765'),
       );
 
       await channel.ready;

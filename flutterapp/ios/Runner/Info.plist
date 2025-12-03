@@ -49,5 +49,13 @@ This app requires the camera for real-time hand tracking.
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+<<<<<<< HEAD
+=======
+	<key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+>>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
 </dict>
 </plist>

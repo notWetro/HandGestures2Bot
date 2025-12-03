@@ -258,6 +258,7 @@
       "name": "vm_service",
       "version": "15.0.2",
       "dependencies": []
+<<<<<<< HEAD
     },
     {
       "name": "camera",
@@ -401,6 +402,8 @@
         "flutter",
         "stream_transform"
       ]
+=======
+>>>>>>> fec4be92b744ec7d08359a036230bf20e4818bc6
     }
   ],
   "configVersion": 1
