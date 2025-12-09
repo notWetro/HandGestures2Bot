@@ -20,7 +20,7 @@ async def websocket_listener(websocket):
             if current_movement and movement_handler:
                 movement_handler.handle_movement(current_movement)
             else:
-                print("Invalid JSON or Handler not ready")
+                print(f"Invalid JSON or Handler not ready - Data: {data}")
 
         except Exception as e:
             print(f"WebSocket Error: {e}")
