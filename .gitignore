@@ -8,8 +8,45 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# VS Code Settings (Optional, keeps your personal settings out of the repo)
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/flutterapp/build/
+/coverage/
+
+# Android Studio build artifacts
+/flutterapp/android/app/debug
+/flutterapp/android/app/profile
+/flutterapp/android/app/release
+
+# Flutter symbolication and obfuscation
+app.*.symbols
+app.*.map.json
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code Settings
 .vscode/
+
+# Miscellaneous
+*.class
+*.log
+*.swp
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
 
 # System Junk
 .DS_Store
