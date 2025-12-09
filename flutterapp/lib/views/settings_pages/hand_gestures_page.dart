@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterapp/views/settings_pages/save_gesture_view.dart';
 
 class HandGesturesPage extends StatefulWidget {
   const HandGesturesPage({super.key});
@@ -8,13 +9,64 @@ class HandGesturesPage extends StatefulWidget {
 }
 
 class _HandGesturesPageState extends State<HandGesturesPage> {
-  final List<Map<String, String>> _gestures = [
-    {'name': 'Fist', 'action': 'Stop Robot', 'icon': ''},
-    {'name': 'Open Hand', 'action': 'Move Forward', 'icon': ''},
-    {'name': 'Peace Sign', 'action': 'Turn Right', 'icon': ''},
-    {'name': 'Thumbs Up', 'action': 'Speed Up', 'icon': ''},
-    {'name': 'Point', 'action': 'Turn Left', 'icon': ''},
+  final List<Map<String, String>> _actions = [
+    {'action': 'Stop Robot', 'gesture': 'Fist', 'icon': ''},
+    {'action': 'Move Forward', 'gesture': 'Open Hand', 'icon': ''},
+    {'action': 'Turn Right', 'gesture': 'Peace Sign', 'icon': ''},
+    {'action': 'Speed Up', 'gesture': 'Thumbs Up', 'icon': ''},
+    {'action': 'Turn Left', 'gesture': 'Point', 'icon': ''},
   ];
+
+  void _editGesture(int index) async {
+    final action = _actions[index];
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SaveGestureView(
+          actionName: action['action']!,
+          currentGesture: action['gesture']!,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _actions[index]['gesture'] = result;
+        // Update icon based on gesture name
+        switch (result) {
+          case 'Fist':
+            _actions[index]['icon'] = '';
+            break;
+          case 'Open Hand':
+            _actions[index]['icon'] = '';
+            break;
+          case 'Peace Sign':
+            _actions[index]['icon'] = '';
+            break;
+          case 'Thumbs Up':
+            _actions[index]['icon'] = '';
+            break;
+          case 'Point':
+            _actions[index]['icon'] = '';
+            break;
+          case 'OK Sign':
+            _actions[index]['icon'] = '';
+            break;
+          case 'Rock On':
+            _actions[index]['icon'] = '';
+            break;
+          default:
+            _actions[index]['icon'] = '';
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Updated ${action['action']} to use ${result} gesture'),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,39 +82,44 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Gesture Configuration',
+              'Action Configuration',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             const Text(
-              'Configure what actions each gesture performs:',
+              'Configure what gesture triggers each robot action:',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 20),
 
             Expanded(
               child: ListView.builder(
-                itemCount: _gestures.length,
+                itemCount: _actions.length,
                 itemBuilder: (context, index) {
-                  final gesture = _gestures[index];
+                  final action = _actions[index];
                   return Card(
                     child: ListTile(
                       leading: Text(
-                        gesture['icon']!,
-                        style: const TextStyle(fontSize: 24),
+                        action['icon']!,
+                        style: const TextStyle(fontSize: 32),
                       ),
-                      title: Text(gesture['name']!),
-                      subtitle: Text('Action: ${gesture['action']!}'),
+                      title: Text(
+                        action['action']!,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        action['gesture']!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          // TODO: Edit gesture action
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Edit ${gesture['name']} gesture'),
-                            ),
-                          );
-                        },
+                        icon: const Icon(Icons.edit, color: Colors.orange),
+                        onPressed: () => _editGesture(index),
                       ),
                     ),
                   );
@@ -71,16 +128,27 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
             ),
 
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Calibrate gestures
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Starting gesture calibration...'),
-                  ),
-                );
-              },
-              child: const Text('Calibrate Gestures'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // TODO: Calibrate gestures
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Starting gesture calibration...'),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text(
+                  'Calibrate All Gestures',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
             ),
           ],
         ),
