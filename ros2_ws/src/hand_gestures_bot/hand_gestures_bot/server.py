@@ -4,20 +4,19 @@ import websockets
 import json
 from threading import Thread
 from .turtlebot_controller import TurtleBotController
-from .gesture_handler import GestureHandler
+from .gesture_handler_handler import MovementHandler
 
-# Global reference
-gesture_handler = None
+movement_handler = None  # Global reference
 
 async def websocket_listener(websocket):
-    global gesture_handler
+    global movement_handler
     async for message in websocket:
         try:
             data = json.loads(message)
-            current_gesture = data.get("gesture", None)
-            
-            if current_gesture and gesture_handler:
-                gesture_handler.handle_gesture(current_gesture)
+            current_movement = data.get("movement", None)
+
+            if current_movement and movement_handler:
+                movement_handler.handle_movement(current_movement)
             else:
                 print("Invalid JSON or Handler not ready")
 
@@ -25,24 +24,20 @@ async def websocket_listener(websocket):
             print(f"WebSocket Error: {e}")
 
 async def start_websocket_server():
-    # Modern AsyncIO starter
-    print("WebSocket Server listening on port 8765...")
+    print("WebSocket Server running on ws://0.0.0.0:8765")
     async with websockets.serve(websocket_listener, "0.0.0.0", 8765):
         await asyncio.Future()  # Run forever
 
 def main(args=None):
-    global gesture_handler
+    global movement_handler
     rclpy.init(args=args)
-    
-    # Initialize ROS Node
-    bot_node = TurtleBotController()
-    gesture_handler = GestureHandler(bot_node)
 
-    # Run ROS in a separate thread so it doesn't block the WebSocket
+    bot_node = TurtleBotController()
+    movement_handler = MovementHandler(bot_node)
+
     ros_thread = Thread(target=rclpy.spin, args=(bot_node,), daemon=True)
     ros_thread.start()
 
-    # Run the WebSocket Server using the modern asyncio.run()
     try:
         asyncio.run(start_websocket_server())
     except KeyboardInterrupt:
