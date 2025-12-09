@@ -59,7 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // Ergänze innerhalb deiner State-Klasse:
+  // Test function to connect to WebSocket server and send "Fist" gesture
 
   Future<void> connectionTest() async {
     try {
@@ -83,14 +83,13 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget cameraView() {
     return Scaffold(
       body: isPermissionGranted
           ? SafeArea(
               child: Stack(
                 children: [
-                  const MyCameraView(), // deine vorhandene Kameraansicht
+                  const MyCameraView(),
                   Positioned(
                     bottom: 16,
                     left: 16,
@@ -106,5 +105,10 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Center(child: Text("Waiting for camera permission...")),
             ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return cameraView();
   }
 }
