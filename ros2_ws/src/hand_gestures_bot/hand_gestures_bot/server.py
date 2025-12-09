@@ -1,6 +1,7 @@
 import rclpy
 import asyncio
 import websockets
+import netifaces
 import json
 import socket
 from threading import Thread
@@ -26,8 +27,7 @@ async def websocket_listener(websocket):
 
 async def start_websocket_server():
     # Get the robot's IP address
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
+    ip_address = netifaces.ifaddresses('wlan0')[netifaces.AF_INET][0]['addr']
     print(f"WebSocket Server running on ws://{ip_address}:8765")
     async with websockets.serve(websocket_listener, "0.0.0.0", 8765):
         await asyncio.Future()  # Run forever
