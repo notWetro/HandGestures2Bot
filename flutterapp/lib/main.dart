@@ -15,13 +15,7 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      // ❌ CHANGE THIS LINE:
-      // home: Scaffold(body: Center(child: Text('Hello World!'))),
-
-      // ✅ TO THIS:
-      home: MyHomePage(),
-    );
+    return const MaterialApp(home: MyHomePage());
   }
 }
 
@@ -34,9 +28,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var isPermissionGranted = Platform.isAndroid ? false : true;
-  static const cameraPermission = MethodChannel(
-    'camera_permission',
-  ); // Fixed typo in variable name
+  static const cameraPermission = MethodChannel('camera_permission');
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -60,7 +53,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // Test function to connect to WebSocket server and send "Fist" gesture
-
   Future<void> connectionTest() async {
     try {
       debugPrint('Connecting to ws://localhost:8765...');
@@ -84,31 +76,92 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget cameraView() {
-    return Scaffold(
-      body: isPermissionGranted
-          ? SafeArea(
-              child: Stack(
-                children: [
-                  const MyCameraView(),
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    child: ElevatedButton(
-                      onPressed: connectionTest,
-                      child: const Text('connection to bot test'),
-                    ),
+    return isPermissionGranted
+        ? SafeArea(
+            child: Stack(
+              children: [
+                const MyCameraView(),
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  child: ElevatedButton(
+                    onPressed: connectionTest,
+                    child: const Text('connection to bot test'),
                   ),
-                ],
-              ),
-            )
-          : const SafeArea(
-              child: Center(child: Text("Waiting for camera permission...")),
+                ),
+              ],
             ),
+          )
+        : const SafeArea(
+            child: Center(child: Text("Waiting for camera permission...")),
+          );
+  }
+
+  Widget voiceView() {
+    return const SafeArea(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.mic, size: 80, color: Colors.blue),
+            SizedBox(height: 20),
+            Text(
+              'Voice Control',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text('Voice control features coming soon...'),
+          ],
+        ),
+      ),
     );
+  }
+
+  Widget settingsView() {
+    return const SafeArea(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.settings, size: 80, color: Colors.grey),
+            SizedBox(height: 20),
+            Text(
+              'Settings',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text('App settings will be available here...'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return cameraView();
+    List<Widget> pages = [cameraView(), voiceView(), settingsView()];
+
+    return Scaffold(
+      body: pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: 'Cam'),
+          BottomNavigationBarItem(icon: Icon(Icons.mic), label: 'Voice'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        onTap: _onItemTapped,
+      ),
+    );
   }
 }
