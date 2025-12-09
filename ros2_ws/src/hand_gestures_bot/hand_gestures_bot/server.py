@@ -2,6 +2,7 @@ import rclpy
 import asyncio
 import websockets
 import json
+import socket
 from threading import Thread
 from .turtlebot_controller import TurtleBotController
 from .gesture_handler import MovementHandler
@@ -24,7 +25,10 @@ async def websocket_listener(websocket):
             print(f"WebSocket Error: {e}")
 
 async def start_websocket_server():
-    print("WebSocket Server running on ws://0.0.0.0:8765")
+    # Get the robot's IP address
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    print(f"WebSocket Server running on ws://{ip_address}:8765")
     async with websockets.serve(websocket_listener, "0.0.0.0", 8765):
         await asyncio.Future()  # Run forever
 
