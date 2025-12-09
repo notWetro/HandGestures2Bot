@@ -4,7 +4,7 @@ import websockets
 import json
 from threading import Thread
 from .turtlebot_controller import TurtleBotController
-from .gesture_handler_handler import MovementHandler
+from .gesture_handler import MovementHandler
 
 movement_handler = None  # Global reference
 
