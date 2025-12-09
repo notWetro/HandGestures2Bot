@@ -1,10 +1,12 @@
 import rclpy
 import asyncio
 import websockets
+import netifaces
 import json
+import socket
 from threading import Thread
 from .turtlebot_controller import TurtleBotController
-from .gesture_handler_handler import MovementHandler
+from .gesture_handler import MovementHandler
 
 movement_handler = None  # Global reference
 
@@ -18,13 +20,15 @@ async def websocket_listener(websocket):
             if current_movement and movement_handler:
                 movement_handler.handle_movement(current_movement)
             else:
-                print("Invalid JSON or Handler not ready")
+                print(f"Invalid JSON or Handler not ready - Data: {data}")
 
         except Exception as e:
             print(f"WebSocket Error: {e}")
 
 async def start_websocket_server():
-    print("WebSocket Server running on ws://0.0.0.0:8765")
+    # Get the robot's IP address
+    ip_address = netifaces.ifaddresses('wlan0')[netifaces.AF_INET][0]['addr']
+    print(f"WebSocket Server running on ws://{ip_address}:8765")
     async with websockets.serve(websocket_listener, "0.0.0.0", 8765):
         await asyncio.Future()  # Run forever
 

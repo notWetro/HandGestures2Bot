@@ -11,31 +11,26 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "camera_permission"
     private val CAMERA_PERMISSION_CODE = 101
-    
-    // Variable to hold the result object so we can reply after the user clicks Allow/Deny
     private var pendingResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // 1. Register your Camera View Factory
+        // REGISTER FACTORY with 'this' (Activity) and 'binaryMessenger'
         flutterEngine
             .platformViewsController
             .registry
             .registerViewFactory(
                 "my_camera_view",
-                MyCameraViewFactory(this)
+                MyCameraViewFactory(this, flutterEngine.dartExecutor.binaryMessenger)
             )
 
-        // 2. Handle the Permission Method Channel
+        // Permission Channel (Keep your existing code for this part)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "getCameraPermission") {
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                    // Permission is already granted
                     result.success(true)
                 } else {
-                    // We need to ask for permission. 
-                    // Save the 'result' to use it later in onRequestPermissionsResult
                     pendingResult = result
                     ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_CODE)
                 }
@@ -45,16 +40,12 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    // 3. Listen for the user's response (Allow/Deny)
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        
         if (requestCode == CAMERA_PERMISSION_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // User clicked "Allow"
                 pendingResult?.success(true)
             } else {
-                // User clicked "Deny"
                 pendingResult?.success(false)
             }
             pendingResult = null
