@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutterapp/views/settings_pages/save_gesture_view.dart';
 
 class HandGesturesPage extends StatefulWidget {
@@ -9,70 +10,70 @@ class HandGesturesPage extends StatefulWidget {
 }
 
 class _HandGesturesPageState extends State<HandGesturesPage> {
-  final List<Map<String, String>> _actions = [
-    {'action': 'Stop Robot', 'gesture': 'Fist', 'icon': ''},
-    {'action': 'Move Forward', 'gesture': 'Open Hand', 'icon': ''},
-    {'action': 'Turn Right', 'gesture': 'Peace Sign', 'icon': ''},
-    {'action': 'Speed Up', 'gesture': 'Thumbs Up', 'icon': ''},
-    {'action': 'Turn Left', 'gesture': 'Point', 'icon': ''},
+  // 1. The Fixed List of Commands the Robot understands
+  final List<String> _robotActions = [
+    'Stop Robot',
+    'Move Forward',
+    'Move Backward',
+    'Turn Left',
+    'Turn Right',
   ];
 
-  void _editGesture(int index) async {
-    final action = _actions[index];
-    final result = await Navigator.push<String>(
+  // 2. List of gestures currently saved in Android memory
+  List<String> _savedGestures = [];
+  bool _isLoading = true;
+
+  static const gestureChannel = MethodChannel('gesture_channel');
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGestures();
+  }
+
+  // Ask Android what it knows
+  Future<void> _fetchGestures() async {
+    try {
+      final List<dynamic> result = await gestureChannel.invokeMethod('getGestureList');
+      if (mounted) {
+        setState(() {
+          _savedGestures = result.cast<String>();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching gestures: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Open camera to record a SPECIFIC action
+  void _recordAction(String actionName) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SaveGestureView(
-          actionName: action['action']!,
-          currentGesture: action['gesture']!,
+          // We pass the Action Name as the Gesture Name.
+          // This forces the app to save it as "Turn Left" etc.
+          currentGesture: actionName, 
+          actionName: actionName,
         ),
       ),
     );
 
-    if (result != null) {
-      setState(() {
-        _actions[index]['gesture'] = result;
-        // Update icon based on gesture name
-        switch (result) {
-          case 'Fist':
-            _actions[index]['icon'] = '';
-            break;
-          case 'Open Hand':
-            _actions[index]['icon'] = '';
-            break;
-          case 'Peace Sign':
-            _actions[index]['icon'] = '';
-            break;
-          case 'Thumbs Up':
-            _actions[index]['icon'] = '';
-            break;
-          case 'Point':
-            _actions[index]['icon'] = '';
-            break;
-          case 'OK Sign':
-            _actions[index]['icon'] = '';
-            break;
-          case 'Rock On':
-            _actions[index]['icon'] = '';
-            break;
-          default:
-            _actions[index]['icon'] = '';
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Updated ${action['action']} to use ${result} gesture'),
-        ),
-      );
-    }
+    // Refresh list to show the green checkmark
+    _fetchGestures();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hand Gestures'),
+        title: const Text('Robot Commands'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
@@ -82,73 +83,76 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Action Configuration',
+              'Command Configuration',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             const Text(
-              'Configure what gesture triggers each robot action:',
+              'Teach the app how to recognize these specific commands.',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 20),
 
             Expanded(
-              child: ListView.builder(
-                itemCount: _actions.length,
-                itemBuilder: (context, index) {
-                  final action = _actions[index];
-                  return Card(
-                    child: ListTile(
-                      leading: Text(
-                        action['icon']!,
-                        style: const TextStyle(fontSize: 32),
-                      ),
-                      title: Text(
-                        action['action']!,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Text(
-                        action['gesture']!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.orange),
-                        onPressed: () => _editGesture(index),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      itemCount: _robotActions.length,
+                      itemBuilder: (context, index) {
+                        final action = _robotActions[index];
+                        
+                        // Check if this action is already learned
+                        final isConfigured = _savedGestures.contains(action);
 
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Calibrate gestures
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Starting gesture calibration...'),
+                        return Card(
+                          elevation: isConfigured ? 2 : 0,
+                          color: isConfigured ? Colors.white : Colors.grey[100],
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(
+                            side: BorderSide(
+                              color: isConfigured ? Colors.green.shade200 : Colors.transparent,
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: isConfigured ? Colors.green.shade100 : Colors.grey.shade300,
+                              child: Icon(
+                                isConfigured ? Icons.check : Icons.question_mark,
+                                color: isConfigured ? Colors.green : Colors.grey,
+                              ),
+                            ),
+                            title: Text(
+                              action,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isConfigured ? Colors.black : Colors.grey[700],
+                              ),
+                            ),
+                            subtitle: Text(
+                              isConfigured ? "Gesture Recorded" : "Not Configured (Empty)",
+                              style: TextStyle(
+                                color: isConfigured ? Colors.green : Colors.redAccent,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            trailing: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isConfigured ? Colors.white : Colors.blue,
+                                foregroundColor: isConfigured ? Colors.blue : Colors.white,
+                                elevation: isConfigured ? 0 : 2,
+                                side: isConfigured ? const BorderSide(color: Colors.blue) : null,
+                              ),
+                              icon: const Icon(Icons.camera_alt, size: 18),
+                              label: Text(isConfigured ? "Edit" : "Record"),
+                              onPressed: () => _recordAction(action),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Calibrate All Gestures',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
             ),
           ],
         ),
