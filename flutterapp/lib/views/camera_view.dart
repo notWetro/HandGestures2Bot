@@ -1,8 +1,7 @@
 import 'dart:io';
-import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:flutter/services.dart';
+// Ensure this import points to your actual native view wrapper
 import 'package:flutterapp/my_camera_view.dart';
 
 class CameraView extends StatefulWidget {
@@ -13,73 +12,101 @@ class CameraView extends StatefulWidget {
 }
 
 class _CameraViewState extends State<CameraView> {
-  var isPermissionGranted = Platform.isAndroid ? false : true;
+  // 1. Permission State
+  bool isPermissionGranted = Platform.isAndroid ? false : true;
   static const cameraPermission = MethodChannel('camera_permission');
+
+  // 2. Gesture State (This will update when Android detects a hand)
+  String detectedGesture = "Waiting...";
+  static const gestureChannel = MethodChannel('gesture_channel');
 
   @override
   void initState() {
     super.initState();
+    // Check permissions on startup
     if (Platform.isAndroid) {
       _getCameraPermissionAndroid();
     }
+    // Start listening to the "Brain"
+    _startListeningForGestures();
   }
 
+  // --- PERMISSION LOGIC ---
   Future<void> _getCameraPermissionAndroid() async {
     try {
-      final bool result = await cameraPermission.invokeMethod(
-        'getCameraPermission',
-      );
-      setState(() {
-        isPermissionGranted = result;
-      });
+      final bool result = await cameraPermission.invokeMethod('getCameraPermission');
+      if (mounted) {
+        setState(() {
+          isPermissionGranted = result;
+        });
+      }
     } on PlatformException catch (e) {
       debugPrint("Failed to get camera permission: '${e.message}'.");
     }
   }
 
-  // Test function to connect to WebSocket server and send "Fist" gesture
-  Future<void> connectionTest() async {
-    try {
-      debugPrint('Connecting to ws://localhost:8765...');
-      final channel = WebSocketChannel.connect(
-        Uri.parse('ws://172.20.10.2:8765'),
-      );
-
-      await channel.ready;
-      debugPrint('Sending: Fist (Holding gesture for 5 seconds...)');
-
-      for (int i = 0; i < 50; i++) {
-        channel.sink.add(jsonEncode({'gesture': 'Fist'}));
-        await Future.delayed(const Duration(milliseconds: 100));
+  // --- GESTURE LISTENER LOGIC ---
+  void _startListeningForGestures() {
+    gestureChannel.setMethodCallHandler((call) async {
+      // Android shouts "onGesture" -> We update the text
+      if (call.method == 'onGesture') {
+        final String newGesture = call.arguments as String;
+        if (mounted) {
+          setState(() {
+            detectedGesture = newGesture;
+          });
+        }
       }
-
-      debugPrint('Finished. Watchdog should stop it now.');
-      await channel.sink.close();
-    } catch (e) {
-      debugPrint('Connection test failed: $e');
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return isPermissionGranted
-        ? SafeArea(
-            child: Stack(
-              children: [
-                const MyCameraView(),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: ElevatedButton(
-                    onPressed: connectionTest,
-                    child: const Text('connection to bot test'),
+    // If we don't have permission, show a simple text message
+    if (!isPermissionGranted) {
+      return const SafeArea(
+        child: Center(child: Text("Waiting for camera permission...")),
+      );
+    }
+
+    // If we have permission, show the Camera + The Text Overlay
+    return SafeArea(
+      child: Stack(
+        children: [
+          // LAYER 1: The Native Android Camera (Background)
+          const Positioned.fill(
+            child: MyCameraView(),
+          ),
+
+          // LAYER 2: The Gesture Text Overlay (Foreground)
+          Positioned(
+            top: 40, 
+            left: 0, 
+            right: 0,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.black54, // Semi-transparent background
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white30, width: 1),
+                ),
+                child: Text(
+                  // This text updates automatically via setState above
+                  "Gesture: $detectedGesture",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
                   ),
                 ),
-              ],
+              ),
             ),
-          )
-        : const SafeArea(
-            child: Center(child: Text("Waiting for camera permission...")),
-          );
+          ),
+        ],
+      ),
+    );
   }
 }

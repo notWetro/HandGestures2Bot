@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+// Ensure this imports your actual Native View wrapper
+import 'package:flutterapp/my_camera_view.dart';
 
 class SaveGestureView extends StatefulWidget {
-  final String actionName;
-  final String currentGesture;
+  // Optional parameter to pre-fill the text box
+  final String? currentGesture;
+  final String? actionName; // Optional: To show "Recording for: Stop Robot"
 
   const SaveGestureView({
-    super.key,
-    required this.actionName,
-    required this.currentGesture,
+    super.key, 
+    this.currentGesture,
+    this.actionName,
   });
 
   @override
@@ -15,136 +19,155 @@ class SaveGestureView extends StatefulWidget {
 }
 
 class _SaveGestureViewState extends State<SaveGestureView> {
-  String? selectedGesture;
-  final List<Map<String, String>> availableGestures = [
-    {'name': 'Fist', 'icon': '✊', 'description': 'Closed fist'},
-    {'name': 'Open Hand', 'icon': '✋', 'description': 'Open palm'},
-    {'name': 'Peace Sign', 'icon': '✌️', 'description': 'Two fingers up'},
-    {'name': 'Thumbs Up', 'icon': '👍', 'description': 'Thumb pointing up'},
-    {'name': 'Point', 'icon': '👉', 'description': 'Index finger pointing'},
-    {
-      'name': 'OK Sign',
-      'icon': '👌',
-      'description': 'Thumb and index finger circle',
-    },
-    {'name': 'Rock On', 'icon': '🤟', 'description': 'Index and pinky up'},
-  ];
+  late TextEditingController _textController;
+  
+  // The Channel to talk to Android (Must match the name in Kotlin!)
+  static const gestureChannel = MethodChannel('gesture_channel');
 
   @override
   void initState() {
     super.initState();
-    selectedGesture = widget.currentGesture;
+    // Pre-fill the text box if a name was passed
+    _textController = TextEditingController(text: widget.currentGesture ?? "");
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveGesture() async {
+    final String name = _textController.text.trim();
+    
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a gesture name first!')),
+      );
+      return;
+    }
+
+    try {
+      // Send command to Android: "Next time you see a hand, save it as [name]"
+      // The result might return "true" if successful, but we rely on the Android side logic.
+      await gestureChannel.invokeMethod('saveGesture', name);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Memorizing "$name"... Hold steady!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Wait a brief moment for the user to read the message, then close
+        // Passing back the name allows the previous screen to update its list if needed
+        Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+                Navigator.pop(context, name); 
+            }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error saving gesture: $e");
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Prevents the camera from getting squished when keyboard opens
+      resizeToAvoidBottomInset: false, 
       appBar: AppBar(
-        title: Text('Edit ${widget.actionName}'),
+        title: Text(widget.actionName != null ? "Record: ${widget.actionName}" : "Save Gesture"),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
-        actions: [
-          TextButton(
-            onPressed: () {
-              if (selectedGesture != null) {
-                Navigator.pop(context, selectedGesture);
-              }
-            },
-            child: const Text(
-              'Save',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Select gesture for "${widget.actionName}"',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Current gesture: ${widget.currentGesture}',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            // --- 1. INSTRUCTIONS ---
+            const Text(
+              "Position your hand in the camera box below.",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 20),
 
-            const Text(
-              'Available Gestures:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-
-            Expanded(
-              child: ListView.builder(
-                itemCount: availableGestures.length,
-                itemBuilder: (context, index) {
-                  final gesture = availableGestures[index];
-                  final isSelected = selectedGesture == gesture['name'];
-
-                  return Card(
-                    color: isSelected ? Colors.orange.shade50 : null,
-                    child: ListTile(
-                      leading: Text(
-                        gesture['icon']!,
-                        style: const TextStyle(fontSize: 32),
-                      ),
-                      title: Text(
-                        gesture['name']!,
-                        style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      subtitle: Text(gesture['description']!),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: Colors.orange)
-                          : null,
-                      onTap: () {
-                        setState(() {
-                          selectedGesture = gesture['name'];
-                        });
-                      },
+            // --- 2. THE REAL CAMERA VIEW ---
+            Center(
+              child: Container(
+                height: 300, 
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.orange, width: 2),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
                     ),
-                  );
-                },
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  // This loads the Native Kotlin Camera
+                  child: const MyCameraView(), 
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            // --- 3. INPUT FIELD ---
+            const Text(
+              "Gesture Name:",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _textController,
+              decoration: InputDecoration(
+                hintText: 'e.g. "Fist", "Point_Left"',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+                prefixIcon: const Icon(Icons.label),
               ),
             ),
 
-            const SizedBox(height: 16),
-            Container(
+            const Spacer(),
+
+            // --- 4. SAVE BUTTON ---
+            SizedBox(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.blue),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Tip: Test the gesture',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+              height: 55,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Make sure you can comfortably perform the selected gesture before saving.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                ],
+                  elevation: 4,
+                ),
+                onPressed: _saveGesture,
+                icon: const Icon(Icons.save),
+                label: const Text(
+                  "Memorize & Save",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

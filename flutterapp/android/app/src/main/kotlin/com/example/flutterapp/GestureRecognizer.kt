@@ -117,4 +117,8 @@ class GestureRecognizer(private val context: Context) {
         val dz = p1.z() - p2.z()
         return sqrt(dx*dx + dy*dy + dz*dz)
     }
+
+    fun getSavedGestureNames(): List<String> {
+        return templates.map { it.name }
+    }
 }

@@ -51,13 +51,23 @@ class MyCameraView(
 
         // Listen for Flutter Commands ("saveGesture")
         methodChannel.setMethodCallHandler { call, result ->
-            if (call.method == "saveGesture") {
-                val name = call.arguments as String
-                pendingSaveName = name // Set flag
-                Log.d("MyCameraView", "Save Request Received for: $name")
-                result.success(null)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "saveGesture" -> {
+                    val name = call.arguments as String
+                    pendingSaveName = name
+                    Log.d("MyCameraView", "Save Request Received for: $name")
+                    result.success(null)
+                }
+                "getGestureList" -> {
+                    // Ask the brain for the list
+                    val names = gestureRecognizer.getSavedGestureNames()
+                    // Send List<String> back to Flutter
+                    result.success(names)
+                }
+                // -------------------
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
 

@@ -50,3 +50,7 @@ migrate_working_dir/
 
 # System Junk
 .DS_Store
+
+
+
+flutterapp/.dart_tool/*
