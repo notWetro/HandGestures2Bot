@@ -23,60 +23,32 @@ class _RobotConnectionPageState extends State<RobotConnectionPage> {
   }
 
   Future<void> _testConnection() async {
-    try {
-      final ip = _ipController.text;
-      final port = _portController.text;
-      debugPrint('Connecting to ws://$ip:$port...');
+  try {
+    final ip = _ipController.text;
+    final port = _portController.text;
 
-      final channel = WebSocketChannel.connect(Uri.parse('ws://$ip:$port'));
+    final channel = WebSocketChannel.connect(Uri.parse('ws://$ip:$port'));
+    await channel.ready;
 
-      await channel.ready;
-      debugPrint('Connected! Sending "forward" signals for 5 seconds...');
+    debugPrint('Connected! Sending forward for 3 seconds...');
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('📡 Sending test signals for 5 seconds...'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-
-      // Send "forward" movement signals for 10 seconds
-      final startTime = DateTime.now();
-      while (DateTime.now().difference(startTime).inSeconds < 5) {
-        channel.sink.add(jsonEncode({'movement': 'forward'}));
-        await Future.delayed(const Duration(milliseconds: 50));
-      }
-
-      // Send stop signal
-      channel.sink.add(jsonEncode({'movement': 'stop'}));
-      debugPrint('Test completed. Sent stop signal.');
-
-      await channel.sink.close();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '✅ Connection test successful! Robot should have moved forward for 5 seconds.',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Connection test failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Connection failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    // Send forward commands at 10Hz (just like ros2 topic pub)
+    for (int i = 0; i < 30; i++) {   // 30 × 100ms = 3 seconds
+      channel.sink.add(jsonEncode({'movement': 'forward'}));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
+
+    // NOW send stop
+    channel.sink.add(jsonEncode({'movement': 'stop'}));
+    debugPrint('Sent STOP after 3 seconds of stable forward.');
+
+    await channel.sink.close();
+
+  } catch (e) {
+    debugPrint("Error: $e");
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
