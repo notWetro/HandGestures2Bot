@@ -17,13 +17,14 @@ class TurtleBotController(Node):
 
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel', qos)
 
-        # Store last command (continuously re-published)
+        # Stored velocity (continuously published)
         self.current_cmd = Twist()
 
+        # Watchdog timing
         self.last_command_time = time.time()
         self.timeout_duration = 0.5  # auto-stop after 0.5 sec
 
-        # Publish cmd_vel at 10Hz continuously
+        # Continuous publishing at 10Hz
         self.publisher_timer = self.create_timer(0.1, self.publish_continuous)
 
         # Watchdog
@@ -49,18 +50,17 @@ class TurtleBotController(Node):
         self.last_command_time = time.time()
 
     def stop(self):
-        self.current_cmd.linear.x = 0.0
-        self.current_cmd.angular.z = 0.0
+        self.current_cmd = Twist()
         self.last_command_time = time.time()
 
     # ─────────────────────────────── INTERNAL TIMERS ───────────────────────────────
 
     def publish_continuous(self):
-        """Publish the last command at 10Hz continuously."""
+        """Publish the last movement command every 0.1 sec."""
         self.publisher_.publish(self.current_cmd)
 
     def watchdog_check(self):
-        """Stop robot if no new movement command received for too long."""
+        """Stop robot if no movement command was received recently."""
         if (time.time() - self.last_command_time) > self.timeout_duration:
-            self.current_cmd.linear.x = 0.0
-            self.current_cmd.angular.z = 0.0
+            self.current_cmd = Twist()      # zero velocity
+            self.publisher_.publish(self.current_cmd)
