@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutterapp/services/gesture_service.dart';
 import 'package:flutterapp/views/settings_pages/save_gesture_view.dart';
 
 class HandGesturesPage extends StatefulWidget {
@@ -10,7 +10,7 @@ class HandGesturesPage extends StatefulWidget {
 }
 
 class _HandGesturesPageState extends State<HandGesturesPage> {
-  // 1. The Fixed List of Commands the Robot understands
+  // The Fixed List of Commands the Robot understands
   final List<String> _robotActions = [
     'Stop Robot',
     'Move Forward',
@@ -19,11 +19,12 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
     'Turn Right',
   ];
 
-  // 2. List of gestures currently saved in Android memory
+  // Service to handle native communication
+  final GestureService _gestureService = GestureService();
+  
+  // State variables
   List<String> _savedGestures = [];
   bool _isLoading = true;
-
-  static const gestureChannel = MethodChannel('gesture_channel');
 
   @override
   void initState() {
@@ -31,13 +32,14 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
     _fetchGestures();
   }
 
-  // Ask Android what it knows
+  // Ask the service for the list of gestures
   Future<void> _fetchGestures() async {
     try {
-      final List<dynamic> result = await gestureChannel.invokeMethod('getGestureList');
+      // Use the service instead of a direct channel call
+      final List<String> result = await _gestureService.getGestureList();
       if (mounted) {
         setState(() {
-          _savedGestures = result.cast<String>();
+          _savedGestures = result;
           _isLoading = false;
         });
       }
@@ -59,7 +61,7 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
         builder: (context) => SaveGestureView(
           // We pass the Action Name as the Gesture Name.
           // This forces the app to save it as "Turn Left" etc.
-          currentGesture: actionName, 
+          currentGesture: actionName,
           actionName: actionName,
         ),
       ),
@@ -92,7 +94,6 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 20),
-
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -100,7 +101,7 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                       itemCount: _robotActions.length,
                       itemBuilder: (context, index) {
                         final action = _robotActions[index];
-                        
+
                         // Check if this action is already learned
                         final isConfigured = _savedGestures.contains(action);
 
@@ -110,14 +111,18 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                           margin: const EdgeInsets.only(bottom: 12),
                           shape: RoundedRectangleBorder(
                             side: BorderSide(
-                              color: isConfigured ? Colors.green.shade200 : Colors.transparent,
+                              color: isConfigured
+                                  ? Colors.green.shade200
+                                  : Colors.transparent,
                               width: 1,
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: isConfigured ? Colors.green.shade100 : Colors.grey.shade300,
+                              backgroundColor: isConfigured
+                                  ? Colors.green.shade100
+                                  : Colors.grey.shade300,
                               child: Icon(
                                 isConfigured ? Icons.check : Icons.question_mark,
                                 color: isConfigured ? Colors.green : Colors.grey,
@@ -128,22 +133,32 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: isConfigured ? Colors.black : Colors.grey[700],
+                                color: isConfigured
+                                    ? Colors.black
+                                    : Colors.grey[700],
                               ),
                             ),
                             subtitle: Text(
-                              isConfigured ? "Gesture Recorded" : "Not Configured (Empty)",
+                              isConfigured
+                                  ? "Gesture Recorded"
+                                  : "Not Configured (Empty)",
                               style: TextStyle(
-                                color: isConfigured ? Colors.green : Colors.redAccent,
+                                color: isConfigured
+                                    ? Colors.green
+                                    : Colors.redAccent,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             trailing: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isConfigured ? Colors.white : Colors.blue,
-                                foregroundColor: isConfigured ? Colors.blue : Colors.white,
+                                backgroundColor:
+                                    isConfigured ? Colors.white : Colors.blue,
+                                foregroundColor:
+                                    isConfigured ? Colors.blue : Colors.white,
                                 elevation: isConfigured ? 0 : 2,
-                                side: isConfigured ? const BorderSide(color: Colors.blue) : null,
+                                side: isConfigured
+                                    ? const BorderSide(color: Colors.blue)
+                                    : null,
                               ),
                               icon: const Icon(Icons.camera_alt, size: 18),
                               label: Text(isConfigured ? "Edit" : "Record"),
