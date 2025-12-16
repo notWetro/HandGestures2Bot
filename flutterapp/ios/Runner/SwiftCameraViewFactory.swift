@@ -10,10 +10,23 @@ import UIKit
 
 class SwiftCameraViewFactory: NSObject, FlutterPlatformViewFactory {
 
-    func create(withFrame frame: CGRect,
-                viewIdentifier viewId: Int64,
-                arguments args: Any?) -> FlutterPlatformView {
+    private let messenger: FlutterBinaryMessenger
 
-        return SwiftCameraPlatformView()
+    init(messenger: FlutterBinaryMessenger) {
+        self.messenger = messenger
+        super.init()
+    }
+
+    func create(
+        withFrame frame: CGRect,
+        viewIdentifier viewId: Int64,
+        arguments args: Any?
+    ) -> FlutterPlatformView {
+
+        return SwiftCameraPlatformView(
+            frame: frame,
+            viewId: viewId,
+            messenger: messenger
+        )
     }
 }

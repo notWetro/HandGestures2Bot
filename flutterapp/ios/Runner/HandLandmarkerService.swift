@@ -55,17 +55,12 @@ class HandLandmarkerService: NSObject {
     }
 
     func detectAsync(sampleBuffer: CMSampleBuffer, orientation: UIImage.Orientation) {
-        let timestampMs = Int(Date().timeIntervalSince1970 * 1000)
-
-        guard let mpImage = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else {
-            return
-        }
-
-        try? handLandmarker?.detectAsync(image: mpImage, timestampInMilliseconds: timestampMs)
+        let ts = Int(Date().timeIntervalSince1970 * 1000)
+        guard let mpImg = try? MPImage(sampleBuffer: sampleBuffer, orientation: orientation) else { return }
+        try? handLandmarker?.detectAsync(image: mpImg, timestampInMilliseconds: ts)
     }
 }
 
-// MARK: - MediaPipe Delegate Callback
 extension HandLandmarkerService: HandLandmarkerLiveStreamDelegate {
     func handLandmarker(
         _ handLandmarker: HandLandmarker,
@@ -74,19 +69,13 @@ extension HandLandmarkerService: HandLandmarkerLiveStreamDelegate {
         error: Error?
     ) {
         let bundle = ResultBundle(
-            inferenceTime: Date().timeIntervalSince1970 * 1000 - Double(timestampInMilliseconds),
+            inferenceTime: 0,
             handLandmarkerResults: [result]
         )
-
-        liveStreamDelegate?.handLandmarkerService(
-            self,
-            didFinishDetection: bundle,
-            error: error
-        )
+        liveStreamDelegate?.handLandmarkerService(self, didFinishDetection: bundle, error: error)
     }
 }
 
-// MARK: Result Bundle
 struct ResultBundle {
     let inferenceTime: Double
     let handLandmarkerResults: [HandLandmarkerResult?]

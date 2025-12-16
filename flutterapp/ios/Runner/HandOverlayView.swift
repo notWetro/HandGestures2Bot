@@ -11,21 +11,26 @@ import MediaPipeTasksVision
 
 class HandOverlayView: UIView {
 
-    private var landmarks: [NormalizedLandmark] = []
     private var previewLayer: AVCaptureVideoPreviewLayer?
+    private(set) var latestLandmarks: [NormalizedLandmark]? = nil
 
     func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
         self.previewLayer = layer
     }
 
-    override func draw(_ rect: CGRect) {
-        guard let previewLayer = previewLayer else { return }
-        guard !landmarks.isEmpty else { return }
-        guard let ctx = UIGraphicsGetCurrentContext() else { return }
+    func update(with result: HandLandmarkerResult) {
+        if let first = result.landmarks.first {
+            latestLandmarks = first
+        }
+        setNeedsDisplay()
+    }
 
-        ctx.setLineWidth(3)
-        ctx.setStrokeColor(UIColor.systemGreen.cgColor)
-        ctx.setFillColor(UIColor.systemGreen.cgColor)
+    override func draw(_ rect: CGRect) {
+        guard
+            let preview = previewLayer,
+            let lm = latestLandmarks,
+            let ctx = UIGraphicsGetCurrentContext()
+        else { return }
 
         let connections = [
             (0,1),(1,2),(2,3),(3,4),
@@ -36,27 +41,24 @@ class HandOverlayView: UIView {
             (0,17)
         ]
 
-        var points: [CGPoint] = []
-
-        for lm in landmarks {
-            let normalized = CGPoint(x: CGFloat(lm.x), y: CGFloat(lm.y))
-            let converted = previewLayer.layerPointConverted(fromCaptureDevicePoint: normalized)
-            points.append(converted)
+        let pts = lm.map { point -> CGPoint in
+            preview.layerPointConverted(
+                fromCaptureDevicePoint: CGPoint(x: CGFloat(point.x), y: CGFloat(point.y))
+            )
         }
 
-        for (start, end) in connections {
-            ctx.move(to: points[start])
-            ctx.addLine(to: points[end])
+        ctx.setStrokeColor(UIColor.green.cgColor)
+        ctx.setLineWidth(3)
+
+        for (s, e) in connections {
+            ctx.move(to: pts[s])
+            ctx.addLine(to: pts[e])
         }
         ctx.strokePath()
 
-        for p in points {
+        ctx.setFillColor(UIColor.green.cgColor)
+        for p in pts {
             ctx.fillEllipse(in: CGRect(x: p.x - 4, y: p.y - 4, width: 8, height: 8))
         }
-    }
-
-    func update(with result: HandLandmarkerResult) {
-        self.landmarks = result.landmarks.first ?? []
-        setNeedsDisplay()
     }
 }
