@@ -41,7 +41,7 @@ class TurtleBotController(Node):
 
     def move_forward(self):
         msg = Twist()
-        msg.linear.x = 0.10        # same magnitude as CLI test
+        msg.linear.x = 0.25        # same magnitude as CLI test
         msg.angular.z = 0.0
         self.current_cmd = msg
         self.last_command_time = time.time()
