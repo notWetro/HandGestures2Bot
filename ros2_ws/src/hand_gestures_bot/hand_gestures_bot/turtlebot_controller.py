@@ -30,7 +30,7 @@ class TurtleBotController(Node):
         self.publisher_timer = self.create_timer(0.1, self.publish_continuous)
 
         # Watchdog timer (disabled for now)
-        #self.watchdog_timer = self.create_timer(0.1, self.watchdog_check)
+        self.watchdog_timer = self.create_timer(0.1, self.watchdog_check)
 
         self.get_logger().info("TurtleBot Controller Initialized (READY)")
 
