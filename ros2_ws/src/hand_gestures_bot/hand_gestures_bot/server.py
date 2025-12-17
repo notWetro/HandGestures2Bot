@@ -10,6 +10,17 @@ from .gesture_handler import MovementHandler
 
 movement_handler = None  # Global reference
 
+
+def get_ip_address():
+    for iface in netifaces.interfaces():
+        addrs = netifaces.ifaddresses(iface)
+        if netifaces.AF_INET in addrs:
+            for addr in addrs[netifaces.AF_INET]:
+                ip = addr.get('addr')
+                if ip and not ip.startswith("127."):
+                    return ip
+    return "127.0.0.1"
+
 async def websocket_listener(websocket):
     global movement_handler
     async for message in websocket:
@@ -27,7 +38,7 @@ async def websocket_listener(websocket):
 
 async def start_websocket_server():
     # Get the robot's IP address
-    ip_address = netifaces.ifaddresses('wlan0')[netifaces.AF_INET][0]['addr']
+    ip_address = get_ip_address()
     print(f"WebSocket Server running on ws://{ip_address}:8765")
     async with websockets.serve(websocket_listener, "0.0.0.0", 8765):
         await asyncio.Future()  # Run forever
