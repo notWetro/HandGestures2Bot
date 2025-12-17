@@ -117,7 +117,7 @@ class _CameraViewState extends State<CameraView> {
       );
     }
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +130,7 @@ class _CameraViewState extends State<CameraView> {
           const SizedBox(height: 20),
           Center(
             child: Container(
-              height: 400,
+              height: 350,
               width: double.infinity,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.blue, width: 2),
@@ -149,7 +149,7 @@ class _CameraViewState extends State<CameraView> {
               ),
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
