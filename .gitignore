@@ -36,6 +36,18 @@ app.*.map.json
 # VS Code Settings
 .vscode/
 
+# Xcode related (iOS)
+**/ios/Runner.xcodeproj/project.pbxproj
+**/ios/Runner.xcodeproj/xcshareddata/xcschemes/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.xcframework
+*.xcworkspace
+xcuserdata/
+
 # Miscellaneous
 *.class
 *.log
