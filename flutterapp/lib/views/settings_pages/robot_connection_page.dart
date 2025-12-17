@@ -1,7 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:flutterapp/services/robot_service.dart';
 
 class RobotConnectionPage extends StatefulWidget {
   const RobotConnectionPage({super.key});
@@ -13,6 +11,7 @@ class RobotConnectionPage extends StatefulWidget {
 class _RobotConnectionPageState extends State<RobotConnectionPage> {
   final TextEditingController _ipController = TextEditingController();
   final TextEditingController _portController = TextEditingController();
+  final RobotService _robotService = RobotService();
 
   @override
   void initState() {
@@ -20,36 +19,35 @@ class _RobotConnectionPageState extends State<RobotConnectionPage> {
     // Set default values
     _ipController.text = '172.20.10.3';
     _portController.text = '8765';
+    _robotService.setConnection(_ipController.text, _portController.text);
   }
 
   Future<void> _testConnection() async {
-  try {
-    final ip = _ipController.text;
-    final port = _portController.text;
+    try {
+      await _robotService.connect();
+      debugPrint('Connected! Sending forward for 3 seconds...');
 
-    final channel = WebSocketChannel.connect(Uri.parse('ws://$ip:$port'));
-    await channel.ready;
+      // Send forward commands at 10Hz
+      for (int i = 0; i < 30; i++) { // 30 × 100ms = 3 seconds
+        _robotService.sendCommand('forward');
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
 
-    debugPrint('Connected! Sending forward for 3 seconds...');
+      // NOW send stop
+      _robotService.sendCommand('stop');
+      debugPrint('Sent STOP after 3 seconds of stable forward.');
 
-    // Send forward commands at 10Hz (just like ros2 topic pub)
-    for (int i = 0; i < 30; i++) {   // 30 × 100ms = 3 seconds
-      channel.sink.add(jsonEncode({'movement': 'forward'}));
-      await Future.delayed(const Duration(milliseconds: 100));
+      _robotService.disconnect();
+    } catch (e) {
+      debugPrint("Error during test connection: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to connect: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-
-    // NOW send stop
-    channel.sink.add(jsonEncode({'movement': 'stop'}));
-    debugPrint('Sent STOP after 3 seconds of stable forward.');
-
-    await channel.sink.close();
-
-  } catch (e) {
-    debugPrint("Error: $e");
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +95,8 @@ class _RobotConnectionPageState extends State<RobotConnectionPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: Save connection settings
+                  _robotService.setConnection(
+                      _ipController.text, _portController.text);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -167,6 +166,7 @@ class _RobotConnectionPageState extends State<RobotConnectionPage> {
   void dispose() {
     _ipController.dispose();
     _portController.dispose();
+    _robotService.disconnect(); // Ensure disconnection on page dispose
     super.dispose();
   }
 }
