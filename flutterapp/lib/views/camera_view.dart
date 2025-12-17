@@ -25,6 +25,7 @@ class _CameraViewState extends State<CameraView> {
   String detectedGesture = "Waiting...";
   String robotCommand = "stop";
   List<String> commandHistory = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -44,9 +45,9 @@ class _CameraViewState extends State<CameraView> {
         setState(() {
           detectedGesture = gesture;
           robotCommand = newCommand;
-          // Add command to history (keep last 5)
+          // Add command to history (keep last 50)
           commandHistory.insert(0, newCommand);
-          if (commandHistory.length > 5) {
+          if (commandHistory.length > 50) {
             commandHistory.removeLast();
           }
         });
@@ -84,6 +85,7 @@ class _CameraViewState extends State<CameraView> {
   void dispose() {
     // Clean up to prevent memory leaks
     _gestureSubscription?.cancel();
+    _scrollController.dispose();
     _gestureService.dispose();
     _robotService.disconnect();
     super.dispose();
@@ -205,46 +207,57 @@ class _CameraViewState extends State<CameraView> {
                     ),
                   )
                 else
-                  ...commandHistory.asMap().entries.map((entry) {
-                    int index = entry.key;
-                    String command = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: index == 0 
-                                  ? Colors.green 
-                                  : Colors.grey.withOpacity(0.3),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Text(
-                                "${index + 1}",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: index == 0 ? Colors.white : Colors.black54,
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    child: Scrollbar(
+                      controller: _scrollController,
+                      thumbVisibility: true,
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        shrinkWrap: true,
+                        itemCount: commandHistory.length,
+                        itemBuilder: (context, index) {
+                          String command = commandHistory[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: index == 0 
+                                        ? Colors.green 
+                                        : Colors.grey.withOpacity(0.3),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "${index + 1}",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: index == 0 ? Colors.white : Colors.black54,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  command,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: index == 0 ? FontWeight.bold : FontWeight.normal,
+                                    color: index == 0 ? Colors.green : Colors.black87,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            command,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: index == 0 ? FontWeight.bold : FontWeight.normal,
-                              color: index == 0 ? Colors.green : Colors.black87,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
               ],
             ),
           ),
