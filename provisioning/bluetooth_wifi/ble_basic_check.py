@@ -2,18 +2,21 @@
 import asyncio
 import os
 import sys
+import json
 
 from bleak import BleakScanner, BleakClient
 
 # Your robot's BLE identifiers
 SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 CHAR_STATUS_UUID = "12345678-1234-5678-1234-56789abcdef3"
+CHAR_ACK_UUID = "12345678-1234-5678-1234-56789abcdef5"
 
 # Optional overrides via env vars
 TARGET_NAME = os.environ.get("TARGET_NAME", "TurtleBot3-Provisioning")
 ADDRESS = os.environ.get("ADDRESS")  # e.g., AA:BB:CC:DD:EE:FF
 SCAN_TIMEOUT = float(os.environ.get("SCAN_TIMEOUT", "6"))
 CONNECT_TIMEOUT = float(os.environ.get("CONNECT_TIMEOUT", "15"))
+ACK_JSON = os.environ.get("ACK_JSON", json.dumps({"status": "connected"}))
 
 
 def pick_device(devices):
@@ -55,18 +58,43 @@ async def main():
                 sys.exit(4)
             print("OK: Connected")
 
-            # Confirm the service exists
+            # Send client-side acknowledgement JSON to ACK characteristic
             try:
-                services = await client.get_services()
-                has_service = any(s.uuid.lower() == SERVICE_UUID.lower() for s in services)
-                print(f"Service present: {has_service}")
-                # Optional single read of status characteristic if present
-                if any(c.uuid.lower() == CHAR_STATUS_UUID.lower() for s in services for c in s.characteristics):
+                payload = ACK_JSON.encode("utf-8")
+                await client.write_gatt_char(CHAR_ACK_UUID, payload, response=True)
+                print(f"ACK written to {CHAR_ACK_UUID}: {ACK_JSON}")
+            except Exception as e:
+                print(f"ACK write skipped: {e}")
+
+            # Try a direct read of status first (works even if service discovery API differs)
+            try:
+                raw = await client.read_gatt_char(CHAR_STATUS_UUID)
+                # Print both raw bytes and decoded text when possible
+                print(f"Status bytes: {raw}")
+                try:
+                    print("Status text:", raw.decode("utf-8"))
+                except Exception:
+                    pass
+            except Exception as e:
+                print(f"Direct status read skipped: {e}")
+
+            # Confirm the service exists (handle Bleak API differences)
+            try:
+                services = None
+                if hasattr(client, "get_services"):
                     try:
-                        raw = await client.read_gatt_char(CHAR_STATUS_UUID)
-                        print(f"Status bytes: {raw}")
-                    except Exception as e:
-                        print(f"Status read skipped: {e}")
+                        services = await client.get_services()  # Bleak >= 0.20
+                    except TypeError:
+                        # Some versions have sync get_services
+                        services = client.get_services()
+                elif hasattr(client, "services"):
+                    services = client.services  # Older Bleak versions
+
+                if services is not None:
+                    has_service = any(getattr(s, "uuid", "").lower() == SERVICE_UUID.lower() for s in services)
+                    print(f"Service present: {has_service}")
+                else:
+                    print("Service discovery unavailable on this Bleak version.")
             except Exception as e:
                 print(f"Service discovery skipped: {e}")
 

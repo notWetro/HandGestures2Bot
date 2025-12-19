@@ -21,6 +21,7 @@ SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 CHAR_SSID_UUID = "12345678-1234-5678-1234-56789abcdef1"
 CHAR_PASSWORD_UUID = "12345678-1234-5678-1234-56789abcdef2"
 CHAR_STATUS_UUID = "12345678-1234-5678-1234-56789abcdef3"
+CHAR_ACK_UUID = "12345678-1234-5678-1234-56789abcdef5"
 
 WLAN_INTERFACE = "wlan0"
 ENCODING = "utf-8"
@@ -83,6 +84,29 @@ class BLECharacteristic(Object):
                 context.set_password(password)
             except Exception as e:
                 logging.error("Error parsing password: %s", e)
+        elif self.uuid == CHAR_ACK_UUID:
+            # Client-side acknowledgement hook
+            try:
+                text = bytes(self.value).decode(ENCODING).strip()
+                payload = {}
+                try:
+                    payload = json.loads(text)
+                except Exception:
+                    # Accept plain text 'connected' too
+                    payload = {"status": text}
+
+                status = str(payload.get("status", "")).lower()
+                connected_flag = bool(payload.get("connected", False))
+                if status == "connected" or connected_flag:
+                    logging.info("Client ACK: connected")
+                    # Reflect ACK in status characteristic without IP
+                    context.status = "connected"
+                    context.ip = context.ip  # unchanged
+                    context._update_status_char()
+                else:
+                    logging.info("Client ACK payload: %s", payload)
+            except Exception as e:
+                logging.error("Error handling ACK write: %s", e)
 
 
 class BLEService(Object):
@@ -238,6 +262,10 @@ def setup_ble():
     status_char_path = service_path + "/chr2"
     status_char = BLECharacteristic(bus, status_char_path, CHAR_STATUS_UUID, ["read", "notify"])
     
+    # Client ACK characteristic (write-only): expects JSON like {"status":"connected"}
+    ack_char_path = service_path + "/chr3"
+    ack_char = BLECharacteristic(bus, ack_char_path, CHAR_ACK_UUID, ["write"])
+    
     # Store reference to status characteristic for updates
     global context
     context.status_char = status_char
@@ -247,6 +275,7 @@ def setup_ble():
     logging.info("  SSID characteristic: %s", CHAR_SSID_UUID)
     logging.info("  Password characteristic: %s", CHAR_PASSWORD_UUID)
     logging.info("  Status characteristic: %s", CHAR_STATUS_UUID)
+    logging.info("  Ack characteristic: %s", CHAR_ACK_UUID)
     
     # Start advertising
     subprocess.run(["sudo", "bluetoothctl", "power", "on"], capture_output=True)
@@ -255,7 +284,7 @@ def setup_ble():
     
     logging.info("Bluetooth discoverable and pairable enabled")
     
-    return bus, service, ssid_char, password_char, status_char
+    return bus, service, ssid_char, password_char, status_char, ack_char
 
 
 def main() -> None:
@@ -268,7 +297,7 @@ def main() -> None:
     context = ProvisioningContext()
     
     try:
-        bus, service, ssid_char, password_char, status_char = setup_ble()
+        bus, service, ssid_char, password_char, status_char, ack_char = setup_ble()
         
         logging.info("BLE Provisioning server started. Waiting for connections...")
         logging.info("Device name: TurtleBot3-Provisioning")
