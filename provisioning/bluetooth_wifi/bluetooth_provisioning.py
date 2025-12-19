@@ -33,8 +33,65 @@ ip_value: Optional[str] = None
 
 
 def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
-    """Connect to Wi-Fi via NetworkManager with timeout."""
-    # Try to find nmcli
+    """Connect to Wi-Fi. Tries wpa_supplicant first, then nmcli."""
+    
+    # Method 1: Try wpa_cli (for wpa_supplicant managed interfaces)
+    try:
+        # Add network
+        result = subprocess.run(
+            ["wpa_cli", "-i", WLAN_INTERFACE, "add_network"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            network_id = result.stdout.strip().split('\n')[-1]
+            
+            # Set SSID
+            subprocess.run(
+                ["wpa_cli", "-i", WLAN_INTERFACE, "set_network", network_id, "ssid", f'"{ssid}"'],
+                capture_output=True, timeout=5
+            )
+            
+            # Set password
+            subprocess.run(
+                ["wpa_cli", "-i", WLAN_INTERFACE, "set_network", network_id, "psk", f'"{password}"'],
+                capture_output=True, timeout=5
+            )
+            
+            # Enable network
+            subprocess.run(
+                ["wpa_cli", "-i", WLAN_INTERFACE, "enable_network", network_id],
+                capture_output=True, timeout=5
+            )
+            
+            # Select network (disconnect from current and connect to new)
+            result = subprocess.run(
+                ["wpa_cli", "-i", WLAN_INTERFACE, "select_network", network_id],
+                capture_output=True, text=True, timeout=5
+            )
+            
+            if "OK" in result.stdout:
+                # Wait for connection
+                import time
+                for _ in range(10):
+                    time.sleep(1)
+                    status = subprocess.run(
+                        ["wpa_cli", "-i", WLAN_INTERFACE, "status"],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    if "wpa_state=COMPLETED" in status.stdout:
+                        # Request IP via DHCP
+                        subprocess.run(["dhclient", WLAN_INTERFACE], capture_output=True, timeout=15)
+                        return True, None
+                
+                return False, "Connection timeout (wpa_supplicant)"
+            else:
+                return False, f"wpa_cli select failed: {result.stdout}"
+    except FileNotFoundError:
+        pass  # wpa_cli not available, try nmcli
+    except Exception as e:
+        logging.warning("wpa_cli method failed: %s, trying nmcli", e)
+    
+    # Method 2: Try nmcli (for NetworkManager managed interfaces)
     nmcli_paths = ["/usr/bin/nmcli", "/bin/nmcli", "nmcli"]
     nmcli_cmd = None
     for path in nmcli_paths:
@@ -46,7 +103,7 @@ def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
             continue
     
     if not nmcli_cmd:
-        return False, "nmcli not found"
+        return False, "Neither wpa_cli nor nmcli available"
     
     cmd = [
         nmcli_cmd, "dev", "wifi", "connect", ssid,
