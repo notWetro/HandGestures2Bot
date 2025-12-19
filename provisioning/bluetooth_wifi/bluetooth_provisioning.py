@@ -92,8 +92,14 @@ def try_provision():
     if ssid_value and password_value:
         status_value = "connecting"
         
-        logging.info("Connecting to Wi-Fi: %s", ssid_value)
-        success, reason = connect_wifi(ssid_value, password_value)
+        # Capture values and reset immediately
+        ssid = ssid_value
+        password = password_value
+        ssid_value = None
+        password_value = None
+        
+        logging.info("Connecting to Wi-Fi: %s", ssid)
+        success, reason = connect_wifi(ssid, password)
         
         if success:
             import time
@@ -102,7 +108,7 @@ def try_provision():
             if ip:
                 status_value = "connected"
                 ip_value = ip
-                logging.info("Provisioning complete: %s -> %s", ssid_value, ip)
+                logging.info("Provisioning complete: %s -> %s", ssid, ip)
             else:
                 status_value = "failed"
                 logging.warning("Connected but no IPv4 address")
