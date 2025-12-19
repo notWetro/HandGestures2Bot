@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 import '../models/dance_move.dart';
 
 class DanceService {
@@ -8,12 +8,11 @@ class DanceService {
   factory DanceService() => _instance;
   DanceService._internal();
 
-  static const String _storageKey = 'saved_dance_moves';
+  static const MethodChannel _channel = MethodChannel('dance_channel');
 
   Future<List<DanceMove>> loadDanceMoves() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? jsonString = prefs.getString(_storageKey);
+      final String? jsonString = await _channel.invokeMethod('loadDanceMoves');
       
       if (jsonString == null || jsonString.isEmpty) {
         return [];
@@ -21,6 +20,9 @@ class DanceService {
 
       final List<dynamic> jsonList = jsonDecode(jsonString);
       return jsonList.map((json) => DanceMove.fromJson(json)).toList();
+    } on PlatformException catch (e) {
+      debugPrint('Error loading dance moves: ${e.message}');
+      return [];
     } catch (e) {
       debugPrint('Error loading dance moves: $e');
       return [];
@@ -29,9 +31,10 @@ class DanceService {
 
   Future<void> saveDanceMoves(List<DanceMove> dances) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final String jsonString = jsonEncode(dances.map((d) => d.toJson()).toList());
-      await prefs.setString(_storageKey, jsonString);
+      await _channel.invokeMethod('saveDanceMoves', jsonString);
+    } on PlatformException catch (e) {
+      debugPrint('Error saving dance moves: ${e.message}');
     } catch (e) {
       debugPrint('Error saving dance moves: $e');
     }
