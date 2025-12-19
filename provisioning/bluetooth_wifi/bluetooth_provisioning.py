@@ -392,8 +392,7 @@ def setup_ble():
         props.Set("org.bluez.Adapter1", "Discoverable", dbus.Boolean(True))
         props.Set("org.bluez.Adapter1", "DiscoverableTimeout", dbus.UInt32(0))
         props.Set("org.bluez.Adapter1", "Pairable", dbus.Boolean(True))
-        props.Set("org.bluez.Adapter1", "Name", dbus.String("TurtleBot3-Provisioning"))
-        logging.info("Adapter configured: powered, discoverable, pairable, name=TurtleBot3-Provisioning")
+        logging.info("Adapter configured: powered, discoverable, pairable")
         
         # Register GATT application
         gatt_manager = dbus.Interface(adapter_obj, "org.bluez.GattManager1")
