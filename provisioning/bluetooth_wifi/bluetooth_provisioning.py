@@ -1,61 +1,88 @@
 #!/usr/bin/env python3
-"""Bluetooth-based Wi-Fi provisioning for TurtleBot3 (system-level service).
+"""Bluetooth Low Energy (BLE) Wi-Fi provisioning for TurtleBot3 (system-level service).
 
-Runs an RFCOMM server to accept Wi-Fi credentials over Bluetooth Classic, uses
-NetworkManager (nmcli) to join the requested network, and replies with the
-assigned IPv4 address. Keep this outside the ROS2 workspace to separate device
-provisioning from application logic.
+Runs a BLE GATT server to accept Wi-Fi credentials over Bluetooth Low Energy.
+Works on both Android and iOS. Uses NetworkManager (nmcli) to join the requested
+network, and replies with the assigned IPv4 address. Keep this outside the ROS2
+workspace to separate device provisioning from application logic.
 """
+import asyncio
 import json
 import logging
-import socket
 import subprocess
 import sys
 from typing import Any, Dict, Optional, Tuple
+import uuid
 
 import netifaces
+from bleak import BleakServer
+from bleak.backends.characteristic import BleakGATTCharacteristic
 
-RFCOMM_CHANNEL = 1
-BUFFER_SIZE = 1024
-MAX_PAYLOAD_SIZE = 8192
-READ_TIMEOUT_SECONDS = 60
+# BLE Configuration
+SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
+SSID_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef1"
+PASSWORD_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef2"
+STATUS_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef3"
+IP_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef4"
+
 WLAN_INTERFACE = "wlan0"
 ENCODING = "utf-8"
+READ_TIMEOUT_SECONDS = 60
 
 
-def send_json(conn: socket.socket, payload: Dict[str, Any]) -> None:
-    """Send a JSON message terminated with a newline for simple framing."""
-    message = json.dumps(payload) + "\n"
-    conn.sendall(message.encode(ENCODING))
+class ProvisioningContext:
+    """Holds the state for an ongoing provisioning session."""
+    def __init__(self):
+        self.ssid: Optional[str] = None
+        self.password: Optional[str] = None
+        self.status: str = "idle"
+        self.ip: Optional[str] = None
+        self.lock = asyncio.Lock()
 
+    async def set_ssid(self, value: str) -> None:
+        async with self.lock:
+            self.ssid = value
+            logging.info("SSID received: %s", value)
+            await self._try_provision()
 
-def receive_json(conn: socket.socket) -> Dict[str, Any]:
-    """Read one JSON object from the RFCOMM connection with newline framing."""
-    conn.settimeout(READ_TIMEOUT_SECONDS)
-    buffer = ""
+    async def set_password(self, value: str) -> None:
+        async with self.lock:
+            self.password = value
+            logging.info("Password received")
+            await self._try_provision()
 
-    while len(buffer) < MAX_PAYLOAD_SIZE:
-        try:
-            chunk = conn.recv(BUFFER_SIZE)
-        except socket.timeout as exc:
-            raise TimeoutError("Timed out waiting for provisioning payload") from exc
+    async def _try_provision(self) -> None:
+        """Attempt provisioning if both SSID and password are set."""
+        if self.ssid and self.password:
+            self.status = "connecting"
+            success, reason = connect_wifi(self.ssid, self.password)
+            
+            if success:
+                ip = get_wlan_ip()
+                if ip:
+                    self.status = "connected"
+                    self.ip = ip
+                    logging.info("Provisioning complete: %s -> %s", self.ssid, ip)
+                else:
+                    self.status = "failed"
+                    logging.warning("Connected to Wi-Fi but no IPv4 address")
+            else:
+                self.status = "failed"
+                logging.warning("Wi-Fi connect failed: %s", reason)
 
-        if not chunk:
-            raise ConnectionError("Client disconnected before sending payload")
+            # Reset for next provisioning attempt
+            await asyncio.sleep(2)
+            self.ssid = None
+            self.password = None
+            self.status = "idle"
 
-        buffer += chunk.decode(ENCODING, errors="replace")
-        candidates = buffer.splitlines() if "\n" in buffer else [buffer]
+    def get_status_value(self) -> bytes:
+        """Return current status as JSON bytes."""
+        payload = {"status": self.status}
+        if self.ip:
+            payload["ip"] = self.ip
+        return json.dumps(payload).encode(ENCODING)
 
-        for candidate in candidates:
-            candidate = candidate.strip()
-            if not candidate:
-                continue
-            try:
-                return json.loads(candidate)
-            except json.JSONDecodeError:
-                continue
-
-    raise ValueError("Provisioning payload exceeded limit or was not valid JSON")
 
 
 def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
@@ -96,85 +123,94 @@ def get_wlan_ip() -> Optional[str]:
         return None
 
 
-def handle_client(conn: socket.socket) -> None:
-    """Handle one provisioning session then close the connection."""
-    try:
-        peer = conn.getpeername()
-    except OSError:
-        peer = "unknown"
-    logging.info("Phone connected over RFCOMM: %s", peer)
+def handle_ssid_write(data: bytes) -> None:
+    """Handle SSID write from characteristic."""
+    pass
 
-    send_json(conn, {"status": "connected"})
+def handle_password_write(data: bytes) -> None:
+    """Handle password write from characteristic."""
+    pass
 
-    try:
-        payload = receive_json(conn)
-    except Exception as exc:
-        logging.warning("Provisioning payload not received: %s", exc)
-        send_json(conn, {"status": "failed", "reason": str(exc)})
-        return
+class ProvisioningCharacteristic:
+    """Wrapper for BLE characteristics."""
+    def __init__(self, uuid: str, properties: list, permissions: list):
+        self.uuid = uuid
+        self.properties = properties
+        self.permissions = permissions
+        self.value = b""
 
-    ssid = payload.get("ssid")
-    password = payload.get("password")
+async def run_server(context: ProvisioningContext) -> None:
+    """Start BLE GATT server and advertise provisioning service."""
+    
+    async def read_status(offset: int = 0) -> bytes:
+        """Callback for reading status characteristic."""
+        return context.get_status_value()[offset:]
 
-    if not ssid or not isinstance(ssid, str):
-        send_json(conn, {"status": "failed", "reason": "Missing or invalid ssid"})
-        return
+    async def read_ip(offset: int = 0) -> bytes:
+        """Callback for reading IP characteristic."""
+        if context.ip:
+            return context.ip.encode(ENCODING)[offset:]
+        return b""
 
-    if password is None or not isinstance(password, str):
-        send_json(conn, {"status": "failed", "reason": "Missing or invalid password"})
-        return
+    async def write_ssid(data: bytes) -> None:
+        """Callback for writing SSID characteristic."""
+        try:
+            ssid = data.decode(ENCODING).strip()
+            await context.set_ssid(ssid)
+        except Exception as exc:
+            logging.error("Error writing SSID: %s", exc)
 
-    success, reason = connect_wifi(ssid, password)
-    if not success:
-        logging.warning("Wi-Fi connect failed for %s: %s", ssid, reason)
-        send_json(conn, {"status": "failed", "reason": reason or "Wi-Fi connect failed"})
-        return
+    async def write_password(data: bytes) -> None:
+        """Callback for writing password characteristic."""
+        try:
+            password = data.decode(ENCODING).strip()
+            await context.set_password(password)
+        except Exception as exc:
+            logging.error("Error writing password: %s", exc)
 
-    ip = get_wlan_ip()
-    if not ip:
-        send_json(
-            conn,
-            {"status": "failed", "reason": "Connected to Wi-Fi but no IPv4 on wlan0"},
-        )
-        return
+    # Create characteristic definitions
+    characteristics = [
+        {
+            "uuid": SSID_CHAR_UUID,
+            "properties": ["write"],
+            "write_callback": write_ssid,
+        },
+        {
+            "uuid": PASSWORD_CHAR_UUID,
+            "properties": ["write"],
+            "write_callback": write_password,
+        },
+        {
+            "uuid": STATUS_CHAR_UUID,
+            "properties": ["read", "notify"],
+            "read_callback": read_status,
+        },
+        {
+            "uuid": IP_CHAR_UUID,
+            "properties": ["read"],
+            "read_callback": read_ip,
+        },
+    ]
 
-    send_json(conn, {"status": "connected", "ssid": ssid, "ip": ip})
-    logging.info("Provisioning complete for ssid=%s ip=%s", ssid, ip)
-
-
-def run_server() -> None:
-    """Start RFCOMM server on channel 1 and serve one client at a time."""
-    try:
-        server = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-    except OSError as exc:
-        logging.error("Bluetooth socket creation failed: %s", exc)
-        sys.exit(1)
-
-    try:
-        server.bind((socket.BDADDR_ANY, RFCOMM_CHANNEL))
-        server.listen(1)
-        logging.info("Bluetooth provisioning server listening on RFCOMM channel %s", RFCOMM_CHANNEL)
-    except OSError as exc:
-        logging.error("Bluetooth socket bind/listen failed: %s", exc)
-        server.close()
-        sys.exit(1)
-
-    try:
-        while True:
-            logging.info("Waiting for phone to connect over Bluetooth…")
-            try:
-                conn, _ = server.accept()
-            except OSError as exc:
-                logging.error("Accept failed: %s", exc)
-                continue
-
-            with conn:
-                handle_client(conn)
-                logging.info("Provisioning session closed")
-    except KeyboardInterrupt:
-        logging.info("Provisioning server interrupted; shutting down")
-    finally:
-        server.close()
+    # Create the BLE server
+    async with BleakServer(
+        [SERVICE_UUID],
+        characteristics,
+        local_name="TurtleBot3-Provisioning",
+    ) as server:
+        logging.info("BLE GATT server started: TurtleBot3-Provisioning")
+        logging.info("Service UUID: %s", SERVICE_UUID)
+        
+        try:
+            await server.start()
+            logging.info("BLE server is advertising...")
+            # Keep server running
+            while True:
+                await asyncio.sleep(1)
+        except Exception as exc:
+            logging.error("BLE server error: %s", exc)
+        finally:
+            logging.info("BLE server stopped")
 
 
 def main() -> None:
@@ -182,7 +218,16 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
-    run_server()
+    
+    context = ProvisioningContext()
+    
+    try:
+        asyncio.run(run_server(context))
+    except KeyboardInterrupt:
+        logging.info("Provisioning server interrupted; shutting down")
+    except Exception as exc:
+        logging.error("Fatal error: %s", exc)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
