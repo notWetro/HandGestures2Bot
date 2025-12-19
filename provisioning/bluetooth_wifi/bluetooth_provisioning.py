@@ -12,11 +12,12 @@ import logging
 import subprocess
 import sys
 from typing import Any, Dict, Optional, Tuple
-import uuid
 
+import dbus
+import dbus.service
+from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
 import netifaces
-from bleak import BleakServer
-from bleak.backends.characteristic import BleakGATTCharacteristic
 
 # BLE Configuration
 SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
@@ -27,7 +28,73 @@ IP_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef4"
 
 WLAN_INTERFACE = "wlan0"
 ENCODING = "utf-8"
-READ_TIMEOUT_SECONDS = 60
+
+
+class BLECharacteristic(dbus.service.Object):
+    """BLE GATT Characteristic."""
+    def __init__(self, bus, path, uuid, properties, value=b""):
+        dbus.service.Object.__init__(self, bus, path)
+        self.uuid = uuid
+        self.properties = properties
+        self.value = value
+        self.bus = bus
+        self.path = path
+
+    def update_value(self, value):
+        """Update characteristic value."""
+        self.value = value
+        self.PropertiesChanged(
+            "org.bluez.GattCharacteristic1",
+            {"Value": dbus.Array(value, signature="y")},
+            []
+        )
+
+    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="a{sv}ays", out_signature="")
+    def WriteValue(self, options, value):
+        """Handle write requests."""
+        pass
+
+    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="a{sv}", out_signature="ay")
+    def ReadValue(self, options):
+        """Handle read requests."""
+        return dbus.Array(self.value, signature="y")
+
+    @dbus.service.signal("org.freedesktop.DBus.Properties", signature="sa{sv}as")
+    def PropertiesChanged(self, iface, changed, invalidated):
+        pass
+
+    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="", out_signature="s")
+    def GetUUID(self):
+        return self.uuid
+
+    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="", out_signature="as")
+    def GetFlags(self):
+        return self.properties
+
+    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="", out_signature="o")
+    def GetService(self):
+        return dbus.ObjectPath("/org/bluez/hci0/gatt0/svc0")
+
+
+class BLEService(dbus.service.Object):
+    """BLE GATT Service."""
+    def __init__(self, bus, path, uuid):
+        dbus.service.Object.__init__(self, bus, path)
+        self.uuid = uuid
+        self.bus = bus
+        self.path = path
+
+    @dbus.service.method("org.bluez.GattService1", in_signature="", out_signature="s")
+    def GetUUID(self):
+        return self.uuid
+
+    @dbus.service.method("org.bluez.GattService1", in_signature="", out_signature="b")
+    def IsPrimary(self):
+        return True
+
+    @dbus.service.method("org.bluez.GattService1", in_signature="", out_signature="ao")
+    def GetCharacteristics(self):
+        return [dbus.ObjectPath("/org/bluez/hci0/gatt0/svc0/chr0")]
 
 
 class ProvisioningContext:
@@ -37,21 +104,18 @@ class ProvisioningContext:
         self.password: Optional[str] = None
         self.status: str = "idle"
         self.ip: Optional[str] = None
-        self.lock = asyncio.Lock()
 
-    async def set_ssid(self, value: str) -> None:
-        async with self.lock:
-            self.ssid = value
-            logging.info("SSID received: %s", value)
-            await self._try_provision()
+    def set_ssid(self, value: str) -> None:
+        self.ssid = value
+        logging.info("SSID received: %s", value)
+        self._try_provision()
 
-    async def set_password(self, value: str) -> None:
-        async with self.lock:
-            self.password = value
-            logging.info("Password received")
-            await self._try_provision()
+    def set_password(self, value: str) -> None:
+        self.password = value
+        logging.info("Password received")
+        self._try_provision()
 
-    async def _try_provision(self) -> None:
+    def _try_provision(self) -> None:
         """Attempt provisioning if both SSID and password are set."""
         if self.ssid and self.password:
             self.status = "connecting"
@@ -70,11 +134,12 @@ class ProvisioningContext:
                 self.status = "failed"
                 logging.warning("Wi-Fi connect failed: %s", reason)
 
-            # Reset for next provisioning attempt
-            await asyncio.sleep(2)
-            self.ssid = None
-            self.password = None
-            self.status = "idle"
+            # Reset for next provisioning attempt after a delay
+            def reset():
+                self.ssid = None
+                self.password = None
+                self.status = "idle"
+            GLib.timeout_add(2000, reset)
 
     def get_status_value(self) -> bytes:
         """Return current status as JSON bytes."""
@@ -139,78 +204,58 @@ class ProvisioningCharacteristic:
         self.permissions = permissions
         self.value = b""
 
-async def run_server(context: ProvisioningContext) -> None:
+def run_server(context: ProvisioningContext) -> None:
     """Start BLE GATT server and advertise provisioning service."""
+    DBusGMainLoop(set_as_default=True)
+    bus = dbus.SystemBus()
     
-    async def read_status(offset: int = 0) -> bytes:
-        """Callback for reading status characteristic."""
-        return context.get_status_value()[offset:]
-
-    async def read_ip(offset: int = 0) -> bytes:
-        """Callback for reading IP characteristic."""
-        if context.ip:
-            return context.ip.encode(ENCODING)[offset:]
-        return b""
-
-    async def write_ssid(data: bytes) -> None:
-        """Callback for writing SSID characteristic."""
+    # Register the BLE service and characteristics
+    service = BLEService(bus, "/org/bluez/hci0/gatt0/svc0", SERVICE_UUID)
+    
+    # SSID characteristic
+    ssid_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr0", SSID_CHAR_UUID, ["write"])
+    original_write = ssid_char.WriteValue
+    
+    def ssid_write_handler(options, value):
         try:
-            ssid = data.decode(ENCODING).strip()
-            await context.set_ssid(ssid)
+            ssid = "".join(chr(b) for b in value).strip()
+            context.set_ssid(ssid)
         except Exception as exc:
             logging.error("Error writing SSID: %s", exc)
-
-    async def write_password(data: bytes) -> None:
-        """Callback for writing password characteristic."""
+    
+    ssid_char.WriteValue = ssid_write_handler
+    
+    # Password characteristic
+    password_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr1", PASSWORD_CHAR_UUID, ["write"])
+    
+    def password_write_handler(options, value):
         try:
-            password = data.decode(ENCODING).strip()
-            await context.set_password(password)
+            password = "".join(chr(b) for b in value).strip()
+            context.set_password(password)
         except Exception as exc:
             logging.error("Error writing password: %s", exc)
-
-    # Create characteristic definitions
-    characteristics = [
-        {
-            "uuid": SSID_CHAR_UUID,
-            "properties": ["write"],
-            "write_callback": write_ssid,
-        },
-        {
-            "uuid": PASSWORD_CHAR_UUID,
-            "properties": ["write"],
-            "write_callback": write_password,
-        },
-        {
-            "uuid": STATUS_CHAR_UUID,
-            "properties": ["read", "notify"],
-            "read_callback": read_status,
-        },
-        {
-            "uuid": IP_CHAR_UUID,
-            "properties": ["read"],
-            "read_callback": read_ip,
-        },
-    ]
-
-    # Create the BLE server
-    async with BleakServer(
-        [SERVICE_UUID],
-        characteristics,
-        local_name="TurtleBot3-Provisioning",
-    ) as server:
-        logging.info("BLE GATT server started: TurtleBot3-Provisioning")
-        logging.info("Service UUID: %s", SERVICE_UUID)
-        
-        try:
-            await server.start()
-            logging.info("BLE server is advertising...")
-            # Keep server running
-            while True:
-                await asyncio.sleep(1)
-        except Exception as exc:
-            logging.error("BLE server error: %s", exc)
-        finally:
-            logging.info("BLE server stopped")
+    
+    password_char.WriteValue = password_write_handler
+    
+    # Status characteristic
+    status_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr2", STATUS_CHAR_UUID, ["read", "notify"])
+    status_char.value = context.get_status_value()
+    
+    # IP characteristic
+    ip_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr3", IP_CHAR_UUID, ["read"])
+    if context.ip:
+        ip_char.value = context.ip.encode(ENCODING)
+    
+    logging.info("BLE GATT server registered")
+    logging.info("Service UUID: %s", SERVICE_UUID)
+    
+    try:
+        mainloop = GLib.MainLoop()
+        logging.info("BLE server is advertising...")
+        mainloop.run()
+    except KeyboardInterrupt:
+        logging.info("Provisioning server interrupted; shutting down")
+        mainloop.quit()
 
 
 def main() -> None:
@@ -222,7 +267,7 @@ def main() -> None:
     context = ProvisioningContext()
     
     try:
-        asyncio.run(run_server(context))
+        run_server(context)
     except KeyboardInterrupt:
         logging.info("Provisioning server interrupted; shutting down")
     except Exception as exc:
