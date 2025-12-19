@@ -1,0 +1,17 @@
+[Unit]
+Description=Bluetooth Wi-Fi Provisioning (TurtleBot3)
+After=bluetooth.service network-online.target
+Wants=bluetooth.service network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/handgestures/provisioning/bluetooth_wifi/bluetooth_provisioning.py
+WorkingDirectory=/opt/handgestures/provisioning/bluetooth_wifi
+Restart=on-failure
+User=root
+Group=root
+# Give Bluetooth and NetworkManager time at boot
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target
