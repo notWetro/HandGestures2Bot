@@ -40,6 +40,9 @@ class BLECharacteristic(Object):
         self.flags = flags
         self.value = bytearray()
 
+    def get_path(self):
+        return dbus.ObjectPath(self.path)
+
     @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
     def Get(self, interface, prop):
         if interface == "org.bluez.GattCharacteristic1":
@@ -116,6 +119,9 @@ class BLEService(Object):
         super().__init__(bus, path)
         self.path = path
         self.uuid = uuid
+
+    def get_path(self):
+        return dbus.ObjectPath(self.path)
 
     @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
     def Get(self, interface, prop):
@@ -250,6 +256,9 @@ class GattApplication(Object):
         Object.__init__(self, bus, path)
         self.services = services
 
+    def get_path(self):
+        return dbus.ObjectPath(self.path)
+
     @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
     def Get(self, interface, prop):
         return None
@@ -261,6 +270,7 @@ class GattApplication(Object):
     @method("org.bluez.GattApplication1", in_signature="", out_signature="a{oa{sa{sv}}}")
     def GetManagedObjects(self):
         """Return all GATT objects (required by BlueZ)."""
+        logging.debug("GetManagedObjects() called")
         managed = {}
         for svc in self.services:
             managed[dbus.ObjectPath(svc.path)] = {
@@ -280,6 +290,7 @@ class GattApplication(Object):
                             "Value": dbus.Array(char.value, "y"),
                         }
                     }
+        logging.debug("GetManagedObjects returning %d objects", len(managed))
         return managed
 
 
@@ -325,18 +336,33 @@ def setup_ble():
     app = GattApplication(bus, app_path, [service])
     
     try:
-        manager = dbus.Interface(bus.get_object("org.bluez", "/org/bluez/hci0"), "org.bluez.GattManager1")
+        # Get the adapter object and enable GATT
+        adapter_path = "/org/bluez/hci0"
+        adapter_obj = bus.get_object("org.bluez", adapter_path)
+        adapter_iface = dbus.Interface(adapter_obj, "org.bluez.Adapter1")
+        
+        # Enable the adapter
+        props = dbus.Interface(adapter_obj, "org.freedesktop.DBus.Properties")
+        props.Set("org.bluez.Adapter1", "Powered", dbus.Boolean(True))
+        props.Set("org.bluez.Adapter1", "Discoverable", dbus.Boolean(True))
+        props.Set("org.bluez.Adapter1", "DiscoverableTimeout", dbus.UInt32(0))  # Infinite discoverable
+        props.Set("org.bluez.Adapter1", "Pairable", dbus.Boolean(True))
+        props.Set("org.bluez.Adapter1", "Name", dbus.String("TurtleBot3-Provisioning"))
+        
+        logging.info("Adapter configured: name=TurtleBot3-Provisioning, discoverable, pairable")
+        
+        # Try to register GATT application
+        manager = dbus.Interface(adapter_obj, "org.bluez.GattManager1")
         manager.RegisterApplication(dbus.ObjectPath(app_path), {}, timeout=5000)
-        logging.info("GATT Application registered with BlueZ")
+        logging.info("GATT Application registered with BlueZ GattManager1")
     except dbus.exceptions.DBusException as e:
-        logging.warning("GATT registration timed out or failed: %s (continuing with DBus objects)", e)
+        logging.warning("GATT registration failed: %s (characteristics may not be discoverable)", e)
+        # Try using bluetoothctl to enable the service
+        logging.info("Attempting to enable service via bluetoothctl...")
+    except Exception as e:
+        logging.error("Error configuring adapter: %s", e)
     
-    # Start advertising
-    subprocess.run(["sudo", "bluetoothctl", "power", "on"], capture_output=True)
-    subprocess.run(["sudo", "bluetoothctl", "discoverable", "on"], capture_output=True)
-    subprocess.run(["sudo", "bluetoothctl", "pairable", "on"], capture_output=True)
-    
-    logging.info("Bluetooth discoverable and pairable enabled")
+    logging.info("Bluetooth device enabled and advertising as TurtleBot3-Provisioning")
     
     return bus, app, service, ssid_char, password_char, status_char, ack_char
 
