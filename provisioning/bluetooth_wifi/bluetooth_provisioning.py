@@ -12,6 +12,7 @@ from typing import Optional, Tuple
 
 import netifaces
 from bluezero import peripheral
+from bluezero import adapter
 
 # BLE Configuration
 SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
@@ -138,8 +139,17 @@ def main():
     logging.info("Device name: %s", DEVICE_NAME)
     logging.info("Service UUID: %s", SERVICE_UUID)
     
+    # Get the first available adapter
+    adapters = list(adapter.Adapter.available())
+    if not adapters:
+        logging.error("No Bluetooth adapters found!")
+        sys.exit(1)
+    
+    adapter_address = adapters[0].address
+    logging.info("Using Bluetooth adapter: %s", adapter_address)
+    
     # Create peripheral
-    ble_peripheral = peripheral.Peripheral(adapter_address=None, local_name=DEVICE_NAME)
+    ble_peripheral = peripheral.Peripheral(adapter_address=adapter_address, local_name=DEVICE_NAME)
     
     # Add service
     ble_peripheral.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
