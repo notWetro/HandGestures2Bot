@@ -17,16 +17,17 @@ CONNECT_TIMEOUT = float(os.environ.get("CONNECT_TIMEOUT", "15"))
 
 
 def pick_device(devices):
-    # Prefer exact name match
+    # Prefer exact name match; metadata may not exist on some Bleak versions
     for d in devices:
-        if (d.name or "").strip() == TARGET_NAME:
+        name = (d.name or "").strip()
+        if name == TARGET_NAME:
             return d
-    # Otherwise, prefer any advertising our service UUID
+    # Fallback: first device with a non-empty name
     for d in devices:
-        uuids = set((d.metadata or {}).get("uuids", []) or [])
-        if SERVICE_UUID.lower() in {u.lower() for u in uuids}:
+        if (d.name or "").strip():
             return d
-    return None
+    # Last resort: first device seen
+    return devices[0] if devices else None
 
 
 async def main():
@@ -42,7 +43,7 @@ async def main():
         if not dev:
             print("ERROR: Target not found. Devices seen:")
             for d in devices:
-                print(f"- {d.name} @ {d.address} uuids={(d.metadata or {}).get('uuids')}")
+                print(f"- {d.name} @ {d.address}")
             sys.exit(3)
         target_address = dev.address
 
