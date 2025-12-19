@@ -326,11 +326,10 @@ def setup_ble():
     
     try:
         manager = dbus.Interface(bus.get_object("org.bluez", "/org/bluez/hci0"), "org.bluez.GattManager1")
-        manager.RegisterApplication(dbus.ObjectPath(app_path), {})
+        manager.RegisterApplication(dbus.ObjectPath(app_path), {}, timeout=5000)
         logging.info("GATT Application registered with BlueZ")
     except dbus.exceptions.DBusException as e:
-        logging.error("Failed to register GATT application: %s", e)
-        raise
+        logging.warning("GATT registration timed out or failed: %s (continuing with DBus objects)", e)
     
     # Start advertising
     subprocess.run(["sudo", "bluetoothctl", "power", "on"], capture_output=True)
