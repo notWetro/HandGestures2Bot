@@ -35,6 +35,104 @@ import UIKit
         }
     }
 
+    // Dance moves channel
+    let danceChannel = FlutterMethodChannel(
+        name: "dance_channel",
+        binaryMessenger: controller.binaryMessenger
+    )
+
+    danceChannel.setMethodCallHandler { call, result in
+        switch call.method {
+
+        case "loadDanceMoves":
+            let jsonString = DanceStore.shared.loadDanceMoves()
+            result(jsonString)
+
+        case "saveDanceMoves":
+            if let jsonString = call.arguments as? String {
+                DanceStore.shared.saveDanceMoves(jsonString: jsonString)
+                result(nil)
+            } else {
+                result(FlutterError(code: "INVALID_ARGS",
+                        message: "Expected JSON string",
+                        details: nil))
+            }
+
+        default:
+            result(FlutterMethodNotImplemented)
+        }
+    }
+
+    // Bluetooth provisioning channel
+    let bluetoothService = BluetoothProvisioningService()
+    let bluetoothChannel = FlutterMethodChannel(
+        name: "bluetooth_channel",
+        binaryMessenger: controller.binaryMessenger
+    )
+
+    bluetoothChannel.setMethodCallHandler { call, result in
+        switch call.method {
+
+        case "getConnectedDevices":
+            bluetoothService.getConnectedDevices { devices in
+                result(devices)
+            }
+        
+        case "startScanning":
+            bluetoothService.startScanning { devices in
+                // Send results back to Flutter via EventChannel or callback
+                result(devices)
+            }
+            
+        case "stopScanning":
+            bluetoothService.stopScanning()
+            result(nil)
+
+        case "connectToDevice":
+            guard let deviceId = call.arguments as? String else {
+                result(FlutterError(code: "INVALID_ARGS",
+                        message: "Expected device ID string",
+                        details: nil))
+                return
+            }
+            bluetoothService.connectToDevice(deviceId: deviceId) { success, error in
+                if success {
+                    result(true)
+                } else {
+                    result(FlutterError(code: "CONNECT_ERROR",
+                            message: error ?? "Connection failed",
+                            details: nil))
+                }
+            }
+
+        case "sendWiFiCredentials":
+            guard let args = call.arguments as? [String: String],
+                  let ssid = args["ssid"],
+                  let password = args["password"] else {
+                result(FlutterError(code: "INVALID_ARGS",
+                        message: "Expected ssid and password",
+                        details: nil))
+                return
+            }
+            bluetoothService.sendWiFiCredentials(ssid: ssid, password: password) { success, error in
+                if success {
+                    result(true)
+                } else {
+                    result(FlutterError(code: "SEND_ERROR",
+                            message: error ?? "Send failed",
+                            details: nil))
+                }
+            }
+
+        case "disconnect":
+            bluetoothService.disconnect()
+            result(nil)
+
+        default:
+            result(FlutterMethodNotImplemented)
+        }
+    }
+
     // Register iOS camera View
     let factory = SwiftCameraViewFactory(messenger: controller.binaryMessenger)
     registrar(forPlugin: "my_camera_view")?

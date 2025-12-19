@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'native_bluetooth_service.dart';
 
 class RobotService {
   // Singleton setup
@@ -11,6 +12,21 @@ class RobotService {
   WebSocketChannel? _channel;
   String _ipAddress = '172.20.10.3'; // Default IP
   String _port = '8765'; // Default Port
+  
+  final NativeBluetoothService _bluetoothService = NativeBluetoothService();
+
+  // ============================================================================
+  // BLUETOOTH SETUP FLOW - Load saved IP address from Bluetooth setup
+  // ============================================================================
+  Future<void> initialize() async {
+    // Try to load previously saved IP address from Bluetooth setup
+    final savedIp = await _bluetoothService.loadSavedIpAddress();
+    if (savedIp != null && savedIp.isNotEmpty) {
+      _ipAddress = savedIp;
+      debugPrint("📱 Using saved IP address from Bluetooth setup: $_ipAddress");
+    }
+  }
+  // ============================================================================
 
   // Update connection details
   void setConnection(String ip, String port) {
@@ -23,10 +39,20 @@ class RobotService {
 
   // Connect to the robot
   Future<void> connect() async {
+    // Initialize first to load any saved IP
+    await initialize();
+    
     // Prevent reconnecting if already connected
-    if (_channel != null && _channel!.sink.done == null) {
-      debugPrint('Already connected.');
-      return;
+    if (_channel != null) {
+      try {
+        // Check if channel is still alive
+        await _channel!.ready;
+        debugPrint('Already connected.');
+        return;
+      } catch (e) {
+        // Channel is dead, need to reconnect
+        _channel = null;
+      }
     }
 
     try {
@@ -59,4 +85,6 @@ class RobotService {
       debugPrint('Cannot send command: Not connected to the robot.');
     }
   }
+  
+  String get currentIpAddress => _ipAddress;
 }

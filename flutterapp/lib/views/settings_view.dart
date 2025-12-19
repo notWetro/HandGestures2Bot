@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutterapp/views/settings_pages/robot_connection_page.dart';
 import 'package:flutterapp/views/settings_pages/hand_gestures_page.dart';
+import 'package:flutterapp/views/settings_pages/bluetooth_setup_page.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -10,6 +11,13 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
+  void _navigateToBluetoothSetup() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const BluetoothSetupPage()),
+    );
+  }
+
   void _navigateToRobotConnection() {
     Navigator.push(
       context,
@@ -35,12 +43,24 @@ class _SettingsViewState extends State<SettingsView> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Robot Connection Setting
+          // Bluetooth WiFi Setup (NEW - Primary method)
           Card(
             child: ListTile(
-              leading: const Icon(Icons.wifi, color: Colors.blue),
-              title: const Text('Robot Connection'),
-              subtitle: const Text('Configure robot connection settings'),
+              leading: const Icon(Icons.bluetooth_connected, color: Colors.blue),
+              title: const Text('Bluetooth WiFi Setup'),
+              subtitle: const Text('Connect robot via Bluetooth and configure WiFi'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: _navigateToBluetoothSetup,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Robot Connection Setting (Manual fallback)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.wifi, color: Colors.orange),
+              title: const Text('Manual Connection'),
+              subtitle: const Text('Enter IP address manually (fallback)'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: _navigateToRobotConnection,
             ),

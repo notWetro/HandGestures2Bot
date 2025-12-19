@@ -35,6 +35,10 @@
 	<string>This app requires the camera for real-time hand tracking.
 This app requires the camera for real-time hand tracking.
 </string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app uses Bluetooth to connect and configure your robot.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>This app uses Bluetooth to connect and configure your robot.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
