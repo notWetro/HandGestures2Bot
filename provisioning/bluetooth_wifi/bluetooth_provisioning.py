@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Bluetooth Low Energy (BLE) Wi-Fi provisioning for TurtleBot3.
 
-Uses the 'bless' library for cross-platform BLE GATT server.
+Uses bluezero library for BLE GATT server on Linux.
 Accepts Wi-Fi credentials from Android/iOS clients and connects via NetworkManager.
 """
-import asyncio
 import json
 import logging
 import subprocess
@@ -12,7 +11,7 @@ import sys
 from typing import Optional, Tuple
 
 import netifaces
-from bless import BlessServer, BlessGATTCharacteristic, GATTCharacteristicProperties, GATTAttributePermissions
+from bluezero import peripheral
 
 # BLE Configuration
 SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
@@ -30,7 +29,6 @@ ssid_value: Optional[str] = None
 password_value: Optional[str] = None
 status_value: str = "idle"
 ip_value: Optional[str] = None
-server: Optional[BlessServer] = None
 
 
 def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
@@ -67,30 +65,19 @@ def get_status_json() -> str:
     return json.dumps(payload)
 
 
-def update_status_char():
-    """Update the status characteristic value."""
-    global server
-    if server:
-        try:
-            value = get_status_json().encode(ENCODING)
-            server.get_characteristic(CHAR_STATUS_UUID).value = bytearray(value)
-        except Exception as e:
-            logging.error("Failed to update status char: %s", e)
-
-
-async def try_provision():
+def try_provision():
     """Attempt Wi-Fi provisioning if both SSID and password are set."""
     global ssid_value, password_value, status_value, ip_value
     
     if ssid_value and password_value:
         status_value = "connecting"
-        update_status_char()
         
         logging.info("Connecting to Wi-Fi: %s", ssid_value)
         success, reason = connect_wifi(ssid_value, password_value)
         
         if success:
-            await asyncio.sleep(2)  # Wait for IP assignment
+            import time
+            time.sleep(2)  # Wait for IP assignment
             ip = get_wlan_ip()
             if ip:
                 status_value = "connected"
@@ -102,60 +89,46 @@ async def try_provision():
         else:
             status_value = "failed"
             logging.warning("Wi-Fi connect failed: %s", reason)
-        
-        update_status_char()
-        
-        # Reset after delay
-        await asyncio.sleep(5)
-        ssid_value = None
-        password_value = None
-        status_value = "idle"
-        update_status_char()
 
 
-def read_request(characteristic: BlessGATTCharacteristic, **kwargs) -> bytearray:
-    """Handle read requests."""
-    uuid = str(characteristic.uuid).lower()
-    logging.info("Read request: %s", uuid)
-    
-    if uuid == CHAR_STATUS_UUID.lower():
-        value = get_status_json().encode(ENCODING)
-        logging.info("Returning status: %s", value)
-        return bytearray(value)
-    
-    return characteristic.value
+# Callbacks for bluezero
+def read_status():
+    """Read callback for status characteristic."""
+    value = get_status_json().encode(ENCODING)
+    logging.info("Read status: %s", value)
+    return list(value)
 
 
-def write_request(characteristic: BlessGATTCharacteristic, value: bytearray, **kwargs):
-    """Handle write requests."""
-    global ssid_value, password_value
-    
-    uuid = str(characteristic.uuid).lower()
+def write_ssid(value, options):
+    """Write callback for SSID characteristic."""
+    global ssid_value
     text = bytes(value).decode(ENCODING).strip()
-    logging.info("Write request: %s = %s", uuid, text[:50] if len(text) > 50 else text)
-    
-    if uuid == CHAR_SSID_UUID.lower():
-        ssid_value = text
-        logging.info("SSID received: %s", ssid_value)
-        asyncio.create_task(try_provision())
-        
-    elif uuid == CHAR_PASSWORD_UUID.lower():
-        password_value = text
-        logging.info("Password received (length=%d)", len(password_value))
-        asyncio.create_task(try_provision())
-        
-    elif uuid == CHAR_ACK_UUID.lower():
-        try:
-            payload = json.loads(text)
-            if payload.get("status") == "connected" or payload.get("connected"):
-                logging.info("Client ACK: connected")
-        except:
-            logging.info("Client ACK: %s", text)
+    ssid_value = text
+    logging.info("SSID received: %s", ssid_value)
+    try_provision()
 
 
-async def main():
-    global server
-    
+def write_password(value, options):
+    """Write callback for password characteristic."""
+    global password_value
+    text = bytes(value).decode(ENCODING).strip()
+    password_value = text
+    logging.info("Password received (length=%d)", len(password_value))
+    try_provision()
+
+
+def write_ack(value, options):
+    """Write callback for ACK characteristic."""
+    text = bytes(value).decode(ENCODING).strip()
+    try:
+        payload = json.loads(text)
+        if payload.get("status") == "connected" or payload.get("connected"):
+            logging.info("Client ACK: connected")
+    except:
+        logging.info("Client ACK: %s", text)
+
+
+def main():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -165,65 +138,70 @@ async def main():
     logging.info("Device name: %s", DEVICE_NAME)
     logging.info("Service UUID: %s", SERVICE_UUID)
     
-    # Create BLE server
-    server = BlessServer(name=DEVICE_NAME)
-    server.read_request_func = read_request
-    server.write_request_func = write_request
+    # Create peripheral
+    ble_peripheral = peripheral.Peripheral(adapter_address=None, local_name=DEVICE_NAME)
     
     # Add service
-    await server.add_new_service(SERVICE_UUID)
+    ble_peripheral.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
     
-    # Add characteristics
-    # SSID - write only
-    await server.add_new_characteristic(
-        SERVICE_UUID, CHAR_SSID_UUID,
-        GATTCharacteristicProperties.write,
-        bytearray(),
-        GATTAttributePermissions.writeable,
+    # SSID characteristic - write only
+    ble_peripheral.add_characteristic(
+        srv_id=1,
+        chr_id=1,
+        uuid=CHAR_SSID_UUID,
+        value=[],
+        notifying=False,
+        flags=['write'],
+        write_callback=write_ssid,
     )
     logging.info("  SSID characteristic: %s", CHAR_SSID_UUID)
     
-    # Password - write only
-    await server.add_new_characteristic(
-        SERVICE_UUID, CHAR_PASSWORD_UUID,
-        GATTCharacteristicProperties.write,
-        bytearray(),
-        GATTAttributePermissions.writeable,
+    # Password characteristic - write only
+    ble_peripheral.add_characteristic(
+        srv_id=1,
+        chr_id=2,
+        uuid=CHAR_PASSWORD_UUID,
+        value=[],
+        notifying=False,
+        flags=['write'],
+        write_callback=write_password,
     )
     logging.info("  Password characteristic: %s", CHAR_PASSWORD_UUID)
     
-    # Status - read + notify
-    await server.add_new_characteristic(
-        SERVICE_UUID, CHAR_STATUS_UUID,
-        GATTCharacteristicProperties.read | GATTCharacteristicProperties.notify,
-        bytearray(get_status_json().encode(ENCODING)),
-        GATTAttributePermissions.readable,
+    # Status characteristic - read + notify
+    ble_peripheral.add_characteristic(
+        srv_id=1,
+        chr_id=3,
+        uuid=CHAR_STATUS_UUID,
+        value=list(get_status_json().encode(ENCODING)),
+        notifying=False,
+        flags=['read', 'notify'],
+        read_callback=read_status,
     )
     logging.info("  Status characteristic: %s", CHAR_STATUS_UUID)
     
-    # ACK - write only
-    await server.add_new_characteristic(
-        SERVICE_UUID, CHAR_ACK_UUID,
-        GATTCharacteristicProperties.write,
-        bytearray(),
-        GATTAttributePermissions.writeable,
+    # ACK characteristic - write only
+    ble_peripheral.add_characteristic(
+        srv_id=1,
+        chr_id=4,
+        uuid=CHAR_ACK_UUID,
+        value=[],
+        notifying=False,
+        flags=['write'],
+        write_callback=write_ack,
     )
     logging.info("  ACK characteristic: %s", CHAR_ACK_UUID)
     
-    # Start advertising
-    await server.start()
+    # Publish and start
+    ble_peripheral.publish()
     logging.info("BLE Server started and advertising!")
     logging.info("Waiting for connections...")
     
-    # Keep running
     try:
-        while True:
-            await asyncio.sleep(1)
+        ble_peripheral.run()
     except KeyboardInterrupt:
         logging.info("Shutting down...")
-    finally:
-        await server.stop()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
