@@ -1,109 +1,125 @@
 #!/usr/bin/env python3
-"""Bluetooth Low Energy (BLE) Wi-Fi provisioning for TurtleBot3 (system-level service).
+"""Bluetooth Low Energy (BLE) Wi-Fi provisioning for TurtleBot3.
 
-Runs a BLE GATT server to accept Wi-Fi credentials over Bluetooth Low Energy.
-Works on both Android and iOS. Uses NetworkManager (nmcli) to join the requested
-network, and replies with the assigned IPv4 address. Keep this outside the ROS2
-workspace to separate device provisioning from application logic.
+Advertises a BLE service that accepts Wi-Fi credentials from both Android and iOS.
+Uses NetworkManager (nmcli) to join the requested network, and provides the
+assigned IPv4 address back to the client.
 """
-import asyncio
 import json
 import logging
 import subprocess
 import sys
-from typing import Any, Dict, Optional, Tuple
-
+from typing import Optional, Tuple
+import netifaces
 import dbus
-import dbus.service
+from dbus.service import Object, method
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
-import netifaces
 
 # BLE Configuration
 SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
-SSID_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef1"
-PASSWORD_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef2"
-STATUS_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef3"
-IP_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef4"
+CHAR_SSID_UUID = "12345678-1234-5678-1234-56789abcdef1"
+CHAR_PASSWORD_UUID = "12345678-1234-5678-1234-56789abcdef2"
+CHAR_STATUS_UUID = "12345678-1234-5678-1234-56789abcdef3"
 
 WLAN_INTERFACE = "wlan0"
 ENCODING = "utf-8"
 
+# Global context
+context = None
 
-class BLECharacteristic(dbus.service.Object):
-    """BLE GATT Characteristic."""
-    def __init__(self, bus, path, uuid, properties, value=b""):
-        dbus.service.Object.__init__(self, bus, path)
-        self.uuid = uuid
-        self.properties = properties
-        self.value = value
-        self.bus = bus
+
+class BLECharacteristic(Object):
+    """BLE GATT Characteristic implementation."""
+    
+    def __init__(self, bus, path, uuid, flags):
+        super().__init__(bus, path)
         self.path = path
+        self.uuid = uuid
+        self.flags = flags
+        self.value = bytearray()
 
-    def update_value(self, value):
-        """Update characteristic value."""
-        self.value = value
-        self.PropertiesChanged(
-            "org.bluez.GattCharacteristic1",
-            {"Value": dbus.Array(value, signature="y")},
-            []
-        )
+    @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
+    def Get(self, interface, prop):
+        if interface == "org.bluez.GattCharacteristic1":
+            if prop == "UUID":
+                return dbus.String(self.uuid)
+            elif prop == "Flags":
+                return dbus.Array(self.flags, "s")
+            elif prop == "Value":
+                return dbus.Array(self.value, "y")
+        return None
 
-    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="a{sv}ays", out_signature="")
-    def WriteValue(self, options, value):
-        """Handle write requests."""
-        pass
+    @method("org.freedesktop.DBus.Properties", in_signature="s", out_signature="a{sv}")
+    def GetAll(self, interface):
+        if interface == "org.bluez.GattCharacteristic1":
+            return {
+                "UUID": dbus.String(self.uuid),
+                "Flags": dbus.Array(self.flags, "s"),
+                "Value": dbus.Array(self.value, "y"),
+            }
+        return {}
 
-    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="a{sv}", out_signature="ay")
+    @method("org.bluez.GattCharacteristic1", in_signature="a{sv}", out_signature="ay")
     def ReadValue(self, options):
-        """Handle read requests."""
-        return dbus.Array(self.value, signature="y")
+        logging.info("Read %s: %s", self.uuid, bytes(self.value))
+        return dbus.Array(self.value, "y")
 
-    @dbus.service.signal("org.freedesktop.DBus.Properties", signature="sa{sv}as")
-    def PropertiesChanged(self, iface, changed, invalidated):
-        pass
+    @method("org.bluez.GattCharacteristic1", in_signature="aya{sv}", out_signature="")
+    def WriteValue(self, value, options):
+        self.value = bytearray(value)
+        logging.info("Write %s: %s", self.uuid, bytes(self.value))
+        
+        global context
+        if self.uuid == CHAR_SSID_UUID:
+            try:
+                ssid = bytes(self.value).decode(ENCODING).strip()
+                context.set_ssid(ssid)
+            except Exception as e:
+                logging.error("Error parsing SSID: %s", e)
+        elif self.uuid == CHAR_PASSWORD_UUID:
+            try:
+                password = bytes(self.value).decode(ENCODING).strip()
+                context.set_password(password)
+            except Exception as e:
+                logging.error("Error parsing password: %s", e)
 
-    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="", out_signature="s")
-    def GetUUID(self):
-        return self.uuid
 
-    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="", out_signature="as")
-    def GetFlags(self):
-        return self.properties
-
-    @dbus.service.method("org.bluez.GattCharacteristic1", in_signature="", out_signature="o")
-    def GetService(self):
-        return dbus.ObjectPath("/org/bluez/hci0/gatt0/svc0")
-
-
-class BLEService(dbus.service.Object):
-    """BLE GATT Service."""
+class BLEService(Object):
+    """BLE GATT Service implementation."""
+    
     def __init__(self, bus, path, uuid):
-        dbus.service.Object.__init__(self, bus, path)
-        self.uuid = uuid
-        self.bus = bus
+        super().__init__(bus, path)
         self.path = path
+        self.uuid = uuid
 
-    @dbus.service.method("org.bluez.GattService1", in_signature="", out_signature="s")
-    def GetUUID(self):
-        return self.uuid
+    @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
+    def Get(self, interface, prop):
+        if interface == "org.bluez.GattService1":
+            if prop == "UUID":
+                return dbus.String(self.uuid)
+            elif prop == "Primary":
+                return dbus.Boolean(True)
+        return None
 
-    @dbus.service.method("org.bluez.GattService1", in_signature="", out_signature="b")
-    def IsPrimary(self):
-        return True
-
-    @dbus.service.method("org.bluez.GattService1", in_signature="", out_signature="ao")
-    def GetCharacteristics(self):
-        return [dbus.ObjectPath("/org/bluez/hci0/gatt0/svc0/chr0")]
+    @method("org.freedesktop.DBus.Properties", in_signature="s", out_signature="a{sv}")
+    def GetAll(self, interface):
+        if interface == "org.bluez.GattService1":
+            return {
+                "UUID": dbus.String(self.uuid),
+                "Primary": dbus.Boolean(True),
+            }
+        return {}
 
 
 class ProvisioningContext:
-    """Holds the state for an ongoing provisioning session."""
+    """Holds provisioning state."""
     def __init__(self):
         self.ssid: Optional[str] = None
         self.password: Optional[str] = None
         self.status: str = "idle"
         self.ip: Optional[str] = None
+        self.status_char = None
 
     def set_ssid(self, value: str) -> None:
         self.ssid = value
@@ -119,6 +135,8 @@ class ProvisioningContext:
         """Attempt provisioning if both SSID and password are set."""
         if self.ssid and self.password:
             self.status = "connecting"
+            self._update_status_char()
+            
             success, reason = connect_wifi(self.ssid, self.password)
             
             if success:
@@ -134,19 +152,32 @@ class ProvisioningContext:
                 self.status = "failed"
                 logging.warning("Wi-Fi connect failed: %s", reason)
 
-            # Reset for next provisioning attempt after a delay
+            self._update_status_char()
+            
+            # Reset after 2 seconds
             def reset():
                 self.ssid = None
                 self.password = None
                 self.status = "idle"
-            GLib.timeout_add(2000, reset)
+                self._update_status_char()
+            
+            GLib.timeout_add_seconds(2, reset)
 
-    def get_status_value(self) -> bytes:
-        """Return current status as JSON bytes."""
+    def _update_status_char(self):
+        """Update status characteristic value."""
+        if self.status_char:
+            payload = {"status": self.status}
+            if self.ip:
+                payload["ip"] = self.ip
+            json_str = json.dumps(payload)
+            self.status_char.value = bytearray(json_str.encode(ENCODING))
+
+    def get_status_json(self) -> str:
+        """Return status as JSON."""
         payload = {"status": self.status}
         if self.ip:
             payload["ip"] = self.ip
-        return json.dumps(payload).encode(ENCODING)
+        return json.dumps(payload)
 
 
 
@@ -183,79 +214,48 @@ def get_wlan_ip() -> Optional[str]:
         if not ipv4_list:
             return None
         return ipv4_list[0].get("addr")
-    except Exception as exc:  # Defensive against missing interface
+    except Exception as exc:
         logging.exception("Failed to read IP address from netifaces: %s", exc)
         return None
 
 
-def handle_ssid_write(data: bytes) -> None:
-    """Handle SSID write from characteristic."""
-    pass
-
-def handle_password_write(data: bytes) -> None:
-    """Handle password write from characteristic."""
-    pass
-
-class ProvisioningCharacteristic:
-    """Wrapper for BLE characteristics."""
-    def __init__(self, uuid: str, properties: list, permissions: list):
-        self.uuid = uuid
-        self.properties = properties
-        self.permissions = permissions
-        self.value = b""
-
-def run_server(context: ProvisioningContext) -> None:
-    """Start BLE GATT server and advertise provisioning service."""
+def setup_ble():
+    """Set up BLE service and characteristics."""
     DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
     
-    # Register the BLE service and characteristics
-    service = BLEService(bus, "/org/bluez/hci0/gatt0/svc0", SERVICE_UUID)
+    # Create service
+    service_path = "/org/bluez/hci0/gatt0/svc0"
+    service = BLEService(bus, service_path, SERVICE_UUID)
     
-    # SSID characteristic
-    ssid_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr0", SSID_CHAR_UUID, ["write"])
-    original_write = ssid_char.WriteValue
+    # Create characteristics
+    ssid_char_path = service_path + "/chr0"
+    ssid_char = BLECharacteristic(bus, ssid_char_path, CHAR_SSID_UUID, ["write"])
     
-    def ssid_write_handler(options, value):
-        try:
-            ssid = "".join(chr(b) for b in value).strip()
-            context.set_ssid(ssid)
-        except Exception as exc:
-            logging.error("Error writing SSID: %s", exc)
+    password_char_path = service_path + "/chr1"
+    password_char = BLECharacteristic(bus, password_char_path, CHAR_PASSWORD_UUID, ["write"])
     
-    ssid_char.WriteValue = ssid_write_handler
+    status_char_path = service_path + "/chr2"
+    status_char = BLECharacteristic(bus, status_char_path, CHAR_STATUS_UUID, ["read", "notify"])
     
-    # Password characteristic
-    password_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr1", PASSWORD_CHAR_UUID, ["write"])
+    # Store reference to status characteristic for updates
+    global context
+    context.status_char = status_char
+    context._update_status_char()
     
-    def password_write_handler(options, value):
-        try:
-            password = "".join(chr(b) for b in value).strip()
-            context.set_password(password)
-        except Exception as exc:
-            logging.error("Error writing password: %s", exc)
+    logging.info("BLE Service registered: %s", SERVICE_UUID)
+    logging.info("  SSID characteristic: %s", CHAR_SSID_UUID)
+    logging.info("  Password characteristic: %s", CHAR_PASSWORD_UUID)
+    logging.info("  Status characteristic: %s", CHAR_STATUS_UUID)
     
-    password_char.WriteValue = password_write_handler
+    # Start advertising
+    subprocess.run(["sudo", "bluetoothctl", "power", "on"], capture_output=True)
+    subprocess.run(["sudo", "bluetoothctl", "discoverable", "on"], capture_output=True)
+    subprocess.run(["sudo", "bluetoothctl", "pairable", "on"], capture_output=True)
     
-    # Status characteristic
-    status_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr2", STATUS_CHAR_UUID, ["read", "notify"])
-    status_char.value = context.get_status_value()
+    logging.info("Bluetooth discoverable and pairable enabled")
     
-    # IP characteristic
-    ip_char = BLECharacteristic(bus, "/org/bluez/hci0/gatt0/svc0/chr3", IP_CHAR_UUID, ["read"])
-    if context.ip:
-        ip_char.value = context.ip.encode(ENCODING)
-    
-    logging.info("BLE GATT server registered")
-    logging.info("Service UUID: %s", SERVICE_UUID)
-    
-    try:
-        mainloop = GLib.MainLoop()
-        logging.info("BLE server is advertising...")
-        mainloop.run()
-    except KeyboardInterrupt:
-        logging.info("Provisioning server interrupted; shutting down")
-        mainloop.quit()
+    return bus, service, ssid_char, password_char, status_char
 
 
 def main() -> None:
@@ -264,14 +264,21 @@ def main() -> None:
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
     
+    global context
     context = ProvisioningContext()
     
     try:
-        run_server(context)
+        bus, service, ssid_char, password_char, status_char = setup_ble()
+        
+        logging.info("BLE Provisioning server started. Waiting for connections...")
+        logging.info("Device name: TurtleBot3-Provisioning")
+        
+        mainloop = GLib.MainLoop()
+        mainloop.run()
     except KeyboardInterrupt:
         logging.info("Provisioning server interrupted; shutting down")
     except Exception as exc:
-        logging.error("Fatal error: %s", exc)
+        logging.error("Fatal error: %s", exc, exc_info=True)
         sys.exit(1)
 
 
