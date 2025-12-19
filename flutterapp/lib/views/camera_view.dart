@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutterapp/services/gesture_service.dart';
 import 'package:flutterapp/services/robot_service.dart';
+import 'package:flutterapp/services/dance_service.dart';
+import 'package:flutterapp/models/dance_move.dart';
 
 class CameraView extends StatefulWidget {
   const CameraView({super.key});
@@ -19,6 +21,7 @@ class _CameraViewState extends State<CameraView> {
   // Services
   final GestureService _gestureService = GestureService();
   final RobotService _robotService = RobotService();
+  final DanceService _danceService = DanceService();
 
   // State
   StreamSubscription? _gestureSubscription;
@@ -26,6 +29,7 @@ class _CameraViewState extends State<CameraView> {
   String robotCommand = "stop";
   List<String> commandHistory = [];
   final ScrollController _scrollController = ScrollController();
+  bool _isDancePlaying = false;
 
   @override
   void initState() {
@@ -39,20 +43,37 @@ class _CameraViewState extends State<CameraView> {
 
   Future<void> _initializeServices() async {
     // Start listening to the gesture service's stream FIRST
-    _gestureSubscription = _gestureService.onGesture.listen((gesture) {
+    _gestureSubscription = _gestureService.onGesture.listen((gesture) async {
       if (mounted) {
-        String newCommand = _mapGestureToCommand(gesture);
-        setState(() {
-          detectedGesture = gesture;
-          robotCommand = newCommand;
-          // Add command to history (keep last 50)
-          commandHistory.insert(0, newCommand);
-          if (commandHistory.length > 50) {
-            commandHistory.removeLast();
-          }
-        });
-        debugPrint("Detected Gesture: $gesture -> Command: $newCommand");
-        _robotService.sendCommand(robotCommand);
+        // Check if this gesture is assigned to a dance
+        final dance = await _danceService.getDanceByGesture(gesture);
+        
+        if (dance != null && !_isDancePlaying) {
+          // Play dance sequence
+          setState(() {
+            detectedGesture = gesture;
+            commandHistory.insert(0, 'Dance: ${dance.name}');
+            if (commandHistory.length > 50) {
+              commandHistory.removeLast();
+            }
+          });
+          debugPrint("Detected Gesture: $gesture -> Playing Dance: ${dance.name}");
+          await _playDance(dance);
+        } else if (!_isDancePlaying) {
+          // Normal gesture command
+          String newCommand = _mapGestureToCommand(gesture);
+          setState(() {
+            detectedGesture = gesture;
+            robotCommand = newCommand;
+            // Add command to history (keep last 50)
+            commandHistory.insert(0, newCommand);
+            if (commandHistory.length > 50) {
+              commandHistory.removeLast();
+            }
+          });
+          debugPrint("Detected Gesture: $gesture -> Command: $newCommand");
+          _robotService.sendCommand(robotCommand);
+        }
       }
     });
     
@@ -62,6 +83,31 @@ class _CameraViewState extends State<CameraView> {
     } catch (e) {
       debugPrint("Failed to connect to robot on view init: $e");
     }
+  }
+
+  Future<void> _playDance(DanceMove dance) async {
+    _isDancePlaying = true;
+    
+    for (final step in dance.steps) {
+      if (!mounted || !_isDancePlaying) break;
+      
+      debugPrint("Dance step: ${step.movement} for ${step.durationMs}ms");
+      _robotService.sendCommand(step.movement);
+      
+      setState(() {
+        robotCommand = step.movement;
+      });
+      
+      await Future.delayed(Duration(milliseconds: step.durationMs));
+    }
+    
+    // Stop at the end
+    _robotService.sendCommand('stop');
+    setState(() {
+      robotCommand = 'stop';
+    });
+    
+    _isDancePlaying = false;
   }
 
   String _mapGestureToCommand(String gesture) {
@@ -84,6 +130,7 @@ class _CameraViewState extends State<CameraView> {
   @override
   void dispose() {
     // Clean up to prevent memory leaks
+    _isDancePlaying = false;
     _gestureSubscription?.cancel();
     _scrollController.dispose();
     _gestureService.dispose();
