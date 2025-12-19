@@ -243,13 +243,32 @@ def get_wlan_ip() -> Optional[str]:
         return None
 
 
+class GattApplication(Object):
+    """Root GATT Application object for BlueZ."""
+    
+    def __init__(self, bus, path):
+        Object.__init__(self, bus, path)
+
+    @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
+    def Get(self, interface, prop):
+        return None
+
+    @method("org.freedesktop.DBus.Properties", in_signature="s", out_signature="a{sv}")
+    def GetAll(self, interface):
+        return {}
+
+
 def setup_ble():
     """Set up BLE service and characteristics."""
     DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
     
+    # Create root application object
+    app_path = "/org/bluez/hci0/gatt"
+    app = GattApplication(bus, app_path)
+    
     # Create service
-    service_path = "/org/bluez/hci0/gatt0/svc0"
+    service_path = app_path + "/svc0"
     service = BLEService(bus, service_path, SERVICE_UUID)
     
     # Create characteristics
@@ -277,6 +296,14 @@ def setup_ble():
     logging.info("  Status characteristic: %s", CHAR_STATUS_UUID)
     logging.info("  Ack characteristic: %s", CHAR_ACK_UUID)
     
+    # Register GATT application with BlueZ
+    try:
+        manager = dbus.Interface(bus.get_object("org.bluez", "/org/bluez/hci0"), "org.bluez.GattManager1")
+        manager.RegisterApplication(dbus.ObjectPath(app_path), {})
+        logging.info("GATT Application registered with BlueZ")
+    except Exception as e:
+        logging.warning("Could not register GATT application: %s (continuing anyway)", e)
+    
     # Start advertising
     subprocess.run(["sudo", "bluetoothctl", "power", "on"], capture_output=True)
     subprocess.run(["sudo", "bluetoothctl", "discoverable", "on"], capture_output=True)
@@ -284,7 +311,7 @@ def setup_ble():
     
     logging.info("Bluetooth discoverable and pairable enabled")
     
-    return bus, service, ssid_char, password_char, status_char, ack_char
+    return bus, app, service, ssid_char, password_char, status_char, ack_char
 
 
 def main() -> None:
@@ -297,7 +324,7 @@ def main() -> None:
     context = ProvisioningContext()
     
     try:
-        bus, service, ssid_char, password_char, status_char, ack_char = setup_ble()
+        bus, app, service, ssid_char, password_char, status_char, ack_char = setup_ble()
         
         logging.info("BLE Provisioning server started. Waiting for connections...")
         logging.info("Device name: TurtleBot3-Provisioning")
