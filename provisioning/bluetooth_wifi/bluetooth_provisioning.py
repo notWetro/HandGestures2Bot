@@ -337,6 +337,20 @@ class LEAdvertisement(Object):
         pass
 
 
+def register_gatt_app(bus, app_path):
+    """Register GATT application with BlueZ (background task)."""
+    try:
+        adapter_path = "/org/bluez/hci0"
+        adapter_obj = bus.get_object("org.bluez", adapter_path)
+        gatt_manager = dbus.Interface(adapter_obj, "org.bluez.GattManager1")
+        gatt_manager.RegisterApplication(dbus.ObjectPath(app_path), {}, timeout=30000)
+        logging.info("GATT Application registered successfully")
+    except dbus.exceptions.DBusException as e:
+        logging.warning("GATT registration failed: %s (characteristics may not be discoverable via standard GATT)", e)
+    except Exception as e:
+        logging.error("Error during GATT registration: %s", e)
+
+
 def setup_ble():
     """Set up BLE service, characteristics, and LE advertisement."""
     DBusGMainLoop(set_as_default=True)
@@ -394,26 +408,18 @@ def setup_ble():
         props.Set("org.bluez.Adapter1", "Pairable", dbus.Boolean(True))
         logging.info("Adapter configured: powered, discoverable, pairable")
         
-        # Register GATT application
-        gatt_manager = dbus.Interface(adapter_obj, "org.bluez.GattManager1")
-        gatt_manager.RegisterApplication(dbus.ObjectPath(app_path), {}, timeout=5000)
-        logging.info("GATT Application registered successfully")
-        
-    except dbus.exceptions.DBusException as e:
-        logging.warning("GATT registration failed: %s", e)
-    except Exception as e:
-        logging.error("Error during GATT registration: %s", e)
-    
-    try:
-        # Register LE Advertisement
+        # Register LE Advertisement immediately
         ad_manager = dbus.Interface(adapter_obj, "org.bluez.LEAdvertisingManager1")
         ad_manager.RegisterAdvertisement(dbus.ObjectPath(ad_path), {}, timeout=5000)
         logging.info("LE Advertisement registered: advertising service UUID %s", SERVICE_UUID)
         
     except dbus.exceptions.DBusException as e:
-        logging.warning("LE Advertisement registration failed: %s", e)
+        logging.warning("Adapter/LE Advertisement registration failed: %s", e)
     except Exception as e:
-        logging.error("Error during LE Advertisement registration: %s", e)
+        logging.error("Error during adapter setup: %s", e)
+    
+    # Register GATT app in background (non-blocking)
+    GLib.timeout_add_seconds(1, lambda: register_gatt_app(bus, app_path) or False)
     
     logging.info("BLE setup complete: device is advertising")
     
