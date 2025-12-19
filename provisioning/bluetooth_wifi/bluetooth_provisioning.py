@@ -246,8 +246,9 @@ def get_wlan_ip() -> Optional[str]:
 class GattApplication(Object):
     """Root GATT Application object for BlueZ."""
     
-    def __init__(self, bus, path):
+    def __init__(self, bus, path, services):
         Object.__init__(self, bus, path)
+        self.services = services
 
     @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
     def Get(self, interface, prop):
@@ -257,18 +258,38 @@ class GattApplication(Object):
     def GetAll(self, interface):
         return {}
 
+    @method("org.bluez.GattApplication1", in_signature="", out_signature="a{oa{sa{sv}}}")
+    def GetManagedObjects(self):
+        """Return all GATT objects (required by BlueZ)."""
+        managed = {}
+        for svc in self.services:
+            managed[dbus.ObjectPath(svc.path)] = {
+                "org.bluez.GattService1": {
+                    "UUID": dbus.String(svc.uuid),
+                    "Primary": dbus.Boolean(True),
+                }
+            }
+            # Add characteristics
+            if hasattr(svc, "characteristics"):
+                for char in svc.characteristics:
+                    managed[dbus.ObjectPath(char.path)] = {
+                        "org.bluez.GattCharacteristic1": {
+                            "UUID": dbus.String(char.uuid),
+                            "Service": dbus.ObjectPath(svc.path),
+                            "Flags": dbus.Array(char.flags, "s"),
+                            "Value": dbus.Array(char.value, "y"),
+                        }
+                    }
+        return managed
+
 
 def setup_ble():
     """Set up BLE service and characteristics."""
     DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
     
-    # Create root application object
-    app_path = "/org/bluez/hci0/gatt"
-    app = GattApplication(bus, app_path)
-    
     # Create service
-    service_path = app_path + "/svc0"
+    service_path = "/org/bluez/hci0/gatt/svc0"
     service = BLEService(bus, service_path, SERVICE_UUID)
     
     # Create characteristics
@@ -281,9 +302,12 @@ def setup_ble():
     status_char_path = service_path + "/chr2"
     status_char = BLECharacteristic(bus, status_char_path, CHAR_STATUS_UUID, ["read", "notify"])
     
-    # Client ACK characteristic (write-only): expects JSON like {"status":"connected"}
+    # Client ACK characteristic (write-only)
     ack_char_path = service_path + "/chr3"
     ack_char = BLECharacteristic(bus, ack_char_path, CHAR_ACK_UUID, ["write"])
+    
+    # Attach characteristics to service
+    service.characteristics = [ssid_char, password_char, status_char, ack_char]
     
     # Store reference to status characteristic for updates
     global context
@@ -296,13 +320,17 @@ def setup_ble():
     logging.info("  Status characteristic: %s", CHAR_STATUS_UUID)
     logging.info("  Ack characteristic: %s", CHAR_ACK_UUID)
     
-    # Register GATT application with BlueZ
+    # Create and register GATT application with BlueZ
+    app_path = "/org/bluez/hci0/gatt"
+    app = GattApplication(bus, app_path, [service])
+    
     try:
         manager = dbus.Interface(bus.get_object("org.bluez", "/org/bluez/hci0"), "org.bluez.GattManager1")
         manager.RegisterApplication(dbus.ObjectPath(app_path), {})
         logging.info("GATT Application registered with BlueZ")
-    except Exception as e:
-        logging.warning("Could not register GATT application: %s (continuing anyway)", e)
+    except dbus.exceptions.DBusException as e:
+        logging.error("Failed to register GATT application: %s", e)
+        raise
     
     # Start advertising
     subprocess.run(["sudo", "bluetoothctl", "power", "on"], capture_output=True)
