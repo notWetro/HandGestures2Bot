@@ -33,16 +33,21 @@ ip_value: Optional[str] = None
 
 
 def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
-    """Connect to Wi-Fi via NetworkManager."""
+    """Connect to Wi-Fi via NetworkManager with timeout."""
     cmd = [
         "nmcli", "dev", "wifi", "connect", ssid,
         "password", password, "ifname", WLAN_INTERFACE,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        reason = (result.stderr or result.stdout).strip() or f"nmcli failed with code {result.returncode}"
-        return False, reason
-    return True, None
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if result.returncode != 0:
+            reason = (result.stderr or result.stdout).strip() or f"nmcli failed with code {result.returncode}"
+            return False, reason
+        return True, None
+    except subprocess.TimeoutExpired:
+        return False, "Connection timeout (15s)"
+    except Exception as e:
+        return False, str(e)
 
 
 def get_wlan_ip() -> Optional[str]:
@@ -208,7 +213,9 @@ def main():
     logging.info("Waiting for connections...")
     
     try:
-        ble_peripheral.run()
+        from gi.repository import GLib
+        mainloop = GLib.MainLoop()
+        mainloop.run()
     except KeyboardInterrupt:
         logging.info("Shutting down...")
 
