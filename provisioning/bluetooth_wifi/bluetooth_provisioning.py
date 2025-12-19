@@ -255,6 +255,7 @@ class GattApplication(Object):
     def __init__(self, bus, path, services):
         Object.__init__(self, bus, path)
         self.services = services
+        self.path = path
 
     def get_path(self):
         return dbus.ObjectPath(self.path)
@@ -294,8 +295,50 @@ class GattApplication(Object):
         return managed
 
 
+class LEAdvertisement(Object):
+    """Bluetooth LE Advertisement for service discovery."""
+    
+    def __init__(self, bus, path, service_uuid):
+        Object.__init__(self, bus, path)
+        self.path = path
+        self.service_uuid = service_uuid
+        self.ad_type = "peripheral"
+
+    def get_path(self):
+        return dbus.ObjectPath(self.path)
+
+    @method("org.freedesktop.DBus.Properties", in_signature="ss", out_signature="v")
+    def Get(self, interface, prop):
+        if interface == "org.bluez.LEAdvertisement1":
+            if prop == "Type":
+                return dbus.String(self.ad_type)
+            elif prop == "ServiceUUIDs":
+                return dbus.Array([dbus.String(self.service_uuid)], "s")
+            elif prop == "LocalName":
+                return dbus.String("TurtleBot3-Provisioning")
+            elif prop == "Appearance":
+                return dbus.UInt16(0)
+        return None
+
+    @method("org.freedesktop.DBus.Properties", in_signature="s", out_signature="a{sv}")
+    def GetAll(self, interface):
+        if interface == "org.bluez.LEAdvertisement1":
+            return {
+                "Type": dbus.String(self.ad_type),
+                "ServiceUUIDs": dbus.Array([dbus.String(self.service_uuid)], "s"),
+                "LocalName": dbus.String("TurtleBot3-Provisioning"),
+                "Appearance": dbus.UInt16(0),
+            }
+        return {}
+
+    @method("org.bluez.LEAdvertisement1", in_signature="", out_signature="")
+    def Release(self):
+        logging.info("LE Advertisement released")
+        pass
+
+
 def setup_ble():
-    """Set up BLE service and characteristics."""
+    """Set up BLE service, characteristics, and LE advertisement."""
     DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
     
@@ -331,38 +374,49 @@ def setup_ble():
     logging.info("  Status characteristic: %s", CHAR_STATUS_UUID)
     logging.info("  Ack characteristic: %s", CHAR_ACK_UUID)
     
-    # Create and register GATT application with BlueZ
+    # Create GATT application
     app_path = "/org/bluez/hci0/gatt"
     app = GattApplication(bus, app_path, [service])
     
+    # Create LE Advertisement
+    ad_path = "/org/bluez/hci0/advertisement0"
+    advertisement = LEAdvertisement(bus, ad_path, SERVICE_UUID)
+    
     try:
-        # Get the adapter object and enable GATT
         adapter_path = "/org/bluez/hci0"
         adapter_obj = bus.get_object("org.bluez", adapter_path)
-        adapter_iface = dbus.Interface(adapter_obj, "org.bluez.Adapter1")
         
-        # Enable the adapter
+        # Configure adapter properties via DBus
         props = dbus.Interface(adapter_obj, "org.freedesktop.DBus.Properties")
         props.Set("org.bluez.Adapter1", "Powered", dbus.Boolean(True))
         props.Set("org.bluez.Adapter1", "Discoverable", dbus.Boolean(True))
-        props.Set("org.bluez.Adapter1", "DiscoverableTimeout", dbus.UInt32(0))  # Infinite discoverable
+        props.Set("org.bluez.Adapter1", "DiscoverableTimeout", dbus.UInt32(0))
         props.Set("org.bluez.Adapter1", "Pairable", dbus.Boolean(True))
         props.Set("org.bluez.Adapter1", "Name", dbus.String("TurtleBot3-Provisioning"))
+        logging.info("Adapter configured: powered, discoverable, pairable, name=TurtleBot3-Provisioning")
         
-        logging.info("Adapter configured: name=TurtleBot3-Provisioning, discoverable, pairable")
+        # Register GATT application
+        gatt_manager = dbus.Interface(adapter_obj, "org.bluez.GattManager1")
+        gatt_manager.RegisterApplication(dbus.ObjectPath(app_path), {}, timeout=5000)
+        logging.info("GATT Application registered successfully")
         
-        # Try to register GATT application
-        manager = dbus.Interface(adapter_obj, "org.bluez.GattManager1")
-        manager.RegisterApplication(dbus.ObjectPath(app_path), {}, timeout=5000)
-        logging.info("GATT Application registered with BlueZ GattManager1")
     except dbus.exceptions.DBusException as e:
-        logging.warning("GATT registration failed: %s (characteristics may not be discoverable)", e)
-        # Try using bluetoothctl to enable the service
-        logging.info("Attempting to enable service via bluetoothctl...")
+        logging.warning("GATT registration failed: %s", e)
     except Exception as e:
-        logging.error("Error configuring adapter: %s", e)
+        logging.error("Error during GATT registration: %s", e)
     
-    logging.info("Bluetooth device enabled and advertising as TurtleBot3-Provisioning")
+    try:
+        # Register LE Advertisement
+        ad_manager = dbus.Interface(adapter_obj, "org.bluez.LEAdvertisingManager1")
+        ad_manager.RegisterAdvertisement(dbus.ObjectPath(ad_path), {}, timeout=5000)
+        logging.info("LE Advertisement registered: advertising service UUID %s", SERVICE_UUID)
+        
+    except dbus.exceptions.DBusException as e:
+        logging.warning("LE Advertisement registration failed: %s", e)
+    except Exception as e:
+        logging.error("Error during LE Advertisement registration: %s", e)
+    
+    logging.info("BLE setup complete: device is advertising")
     
     return bus, app, service, ssid_char, password_char, status_char, ack_char
 
