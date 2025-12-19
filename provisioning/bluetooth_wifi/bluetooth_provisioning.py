@@ -34,8 +34,22 @@ ip_value: Optional[str] = None
 
 def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
     """Connect to Wi-Fi via NetworkManager with timeout."""
+    # Try to find nmcli
+    nmcli_paths = ["/usr/bin/nmcli", "/bin/nmcli", "nmcli"]
+    nmcli_cmd = None
+    for path in nmcli_paths:
+        try:
+            subprocess.run([path, "--version"], capture_output=True, timeout=5)
+            nmcli_cmd = path
+            break
+        except:
+            continue
+    
+    if not nmcli_cmd:
+        return False, "nmcli not found"
+    
     cmd = [
-        "nmcli", "dev", "wifi", "connect", ssid,
+        nmcli_cmd, "dev", "wifi", "connect", ssid,
         "password", password, "ifname", WLAN_INTERFACE,
     ]
     try:
