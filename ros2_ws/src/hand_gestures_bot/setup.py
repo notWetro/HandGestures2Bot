@@ -19,8 +19,10 @@ setup(
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [
-            'start_server = hand_gestures_bot.server:main',
-        ],
-    },
+    'console_scripts': [
+        'start_server = hand_gestures_bot.server:main',
+        'safety_auto_stop = hand_gestures_bot.safety_auto_stop:main',
+    ],
+},
+
 )
