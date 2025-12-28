@@ -56,15 +56,20 @@ fi
 echo ""
 echo -e "${YELLOW}Checking for remaining processes...${NC}"
 
-# Kill Gazebo
-pkill -f "gzserver" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gzserver"
-pkill -f "gzclient" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gzclient"
-pkill -f "gazebo" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gazebo"
-pkill -f "turtlebot3_gazebo" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed turtlebot3_gazebo"
+# Kill Gazebo (more aggressively)
+pkill -9 -f "gzserver" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gzserver"
+pkill -9 -f "gzclient" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gzclient"
+pkill -9 -f "gazebo" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gazebo"
+pkill -9 -f "turtlebot3_gazebo" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed turtlebot3_gazebo"
+pkill -9 -f "robot_state_publisher" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed robot_state_publisher"
+pkill -9 -f "spawn_entity" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed spawn_entity"
 
 # Kill WebSocket server
 pkill -f "start_server" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed start_server"
 pkill -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hand_gestures_bot"
+
+# Wait for port release
+sleep 2
 
 echo ""
 echo -e "${GREEN}All simulation services stopped.${NC}"

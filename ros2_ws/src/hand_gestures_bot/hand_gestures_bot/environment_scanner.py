@@ -220,6 +220,16 @@ class EnvironmentScanner(Node):
         # Convert angles from degrees to radians
         angle_min_rad = math.radians(angle_min_deg)
         angle_max_rad = math.radians(angle_max_deg)
+        
+        # Handle negative angles by wrapping to the scan's angle range
+        # TurtleBot3 LiDAR typically uses 0 to 2π range
+        scan_range = scan.angle_max - scan.angle_min
+        
+        # Wrap negative angles to positive (e.g., -22.5° becomes 337.5°)
+        if angle_min_rad < scan.angle_min:
+            angle_min_rad += scan_range
+        if angle_max_rad < scan.angle_min:
+            angle_max_rad += scan_range
 
         # Calculate the index range for this sector
         # Index formula: (target_angle - angle_min) / angle_increment
@@ -286,10 +296,11 @@ def main(args=None) -> None:
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        pass
+        node.get_logger().info("Shutting down...")
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
