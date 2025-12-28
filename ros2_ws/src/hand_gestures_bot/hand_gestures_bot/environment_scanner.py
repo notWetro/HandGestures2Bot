@@ -221,33 +221,38 @@ class EnvironmentScanner(Node):
         angle_min_rad = math.radians(angle_min_deg)
         angle_max_rad = math.radians(angle_max_deg)
         
-        # Handle negative angles by wrapping to the scan's angle range
-        # TurtleBot3 LiDAR typically uses 0 to 2π range
+        # Calculate scan parameters
         scan_range = scan.angle_max - scan.angle_min
+        num_readings = len(scan.ranges)
         
-        # Wrap negative angles to positive (e.g., -22.5° becomes 337.5°)
-        if angle_min_rad < scan.angle_min:
-            angle_min_rad += scan_range
-        if angle_max_rad < scan.angle_min:
-            angle_max_rad += scan_range
-
-        # Calculate the index range for this sector
-        # Index formula: (target_angle - angle_min) / angle_increment
-        start_idx = int(math.floor((angle_min_rad - scan.angle_min) / scan.angle_increment))
-        end_idx = int(math.ceil((angle_max_rad - scan.angle_min) / scan.angle_increment))
-
-        # Clamp indices to valid range
-        start_idx = max(0, start_idx)
-        end_idx = min(len(scan.ranges) - 1, end_idx)
-
-        # Handle edge case where indices are invalid
-        if start_idx > end_idx:
-            return None
+        # Helper function to get index for an angle
+        def angle_to_index(angle: float) -> int:
+            # Normalize angle to scan range [angle_min, angle_max)
+            while angle < scan.angle_min:
+                angle += scan_range
+            while angle >= scan.angle_max:
+                angle -= scan_range
+            idx = int((angle - scan.angle_min) / scan.angle_increment)
+            return max(0, min(num_readings - 1, idx))
+        
+        # Get indices for sector boundaries
+        start_idx = angle_to_index(angle_min_rad)
+        end_idx = angle_to_index(angle_max_rad)
+        
+        # Determine which indices to scan
+        # If start > end, the sector wraps around (e.g., -7.5° to +7.5° becomes 352.5° to 7.5°)
+        indices_to_scan = []
+        if start_idx <= end_idx:
+            # Simple case: continuous range
+            indices_to_scan = list(range(start_idx, end_idx + 1))
+        else:
+            # Wraparound case: scan from start to end of array, then from 0 to end
+            indices_to_scan = list(range(start_idx, num_readings)) + list(range(0, end_idx + 1))
 
         # Find the minimum valid distance in this sector
         min_distance: Optional[float] = None
 
-        for idx in range(start_idx, end_idx + 1):
+        for idx in indices_to_scan:
             range_value = scan.ranges[idx]
             
             # Skip invalid range values
