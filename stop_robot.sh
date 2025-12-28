@@ -68,6 +68,16 @@ pkill -f "start_server" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed start_
 pkill -f "safety_scanner" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed safety_scanner"
 pkill -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hand_gestures_bot"
 
+# Wait for cleanup
+sleep 2
+
+# Reset ROS 2 daemon to clear any stale state
+echo ""
+echo -e "${YELLOW}Resetting ROS 2 daemon...${NC}"
+ros2 daemon stop 2>/dev/null
+ros2 daemon start 2>/dev/null
+echo -e "${GREEN}✓${NC} ROS 2 daemon restarted"
+
 echo ""
 echo -e "${GREEN}All services stopped.${NC}"
 echo ""

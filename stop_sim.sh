@@ -72,6 +72,13 @@ pkill -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed h
 # Wait for port release
 sleep 2
 
+# Reset ROS 2 daemon to clear any stale state
+echo ""
+echo -e "${YELLOW}Resetting ROS 2 daemon...${NC}"
+ros2 daemon stop 2>/dev/null
+ros2 daemon start 2>/dev/null
+echo -e "${GREEN}✓${NC} ROS 2 daemon restarted"
+
 echo ""
 echo -e "${GREEN}All simulation services stopped.${NC}"
 echo ""
