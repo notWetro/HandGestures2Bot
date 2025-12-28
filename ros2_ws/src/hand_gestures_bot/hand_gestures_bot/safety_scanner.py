@@ -36,6 +36,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPo
 
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 
 
 def is_valid_range(value: float) -> bool:
@@ -133,6 +134,15 @@ class SafetyScanner(Node):
         )
 
         # -------------------------------------------------------------------------
+        # Create obstacle status publisher (for WebSocket/app feedback)
+        # -------------------------------------------------------------------------
+        self.obstacle_status_pub = self.create_publisher(
+            String,
+            "/obstacle_status",
+            cmd_qos,
+        )
+
+        # -------------------------------------------------------------------------
         # Create timer for periodic logging (every 2 seconds)
         # -------------------------------------------------------------------------
         self.log_timer = self.create_timer(
@@ -145,7 +155,7 @@ class SafetyScanner(Node):
         # -------------------------------------------------------------------------
         self.get_logger().info("SafetyScanner node started.")
         self.get_logger().info("Subscribing to: /scan, /cmd_vel_in")
-        self.get_logger().info("Publishing to: /cmd_vel")
+        self.get_logger().info("Publishing to: /cmd_vel, /obstacle_status")
         self.get_logger().info(f"Safety distance: {self.SAFETY_DISTANCE_M * 100:.0f} cm")
         self.get_logger().info("⚠️ Send commands to /cmd_vel_in (NOT /cmd_vel directly!)")
 
@@ -155,7 +165,7 @@ class SafetyScanner(Node):
         self._update_obstacle_state()
 
     def _update_obstacle_state(self) -> None:
-        """Check for obstacles and update state."""
+        """Check for obstacles and update state, publish status on change."""
         if self.latest_scan is None:
             self.obstacle_detected = False
             return
@@ -172,19 +182,42 @@ class SafetyScanner(Node):
 
         # Check if any sector has obstacle within safety distance
         obstacle_sectors = []
-        if left_m is not None and left_m < self.SAFETY_DISTANCE_M:
-            obstacle_sectors.append(f"LEFT ({left_m*100:.1f}cm)")
-        if center_m is not None and center_m < self.SAFETY_DISTANCE_M:
-            obstacle_sectors.append(f"CENTER ({center_m*100:.1f}cm)")
-        if right_m is not None and right_m < self.SAFETY_DISTANCE_M:
-            obstacle_sectors.append(f"RIGHT ({right_m*100:.1f}cm)")
+        distances = {}
+        
+        if left_m is not None:
+            distances["left"] = round(left_m * 100, 1)
+            if left_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("left")
+        
+        if center_m is not None:
+            distances["center"] = round(center_m * 100, 1)
+            if center_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("center")
+        
+        if right_m is not None:
+            distances["right"] = round(right_m * 100, 1)
+            if right_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("right")
 
         was_detected = self.obstacle_detected
         self.obstacle_detected = len(obstacle_sectors) > 0
 
+        # Publish status on state change
+        if self.obstacle_detected != was_detected:
+            import json
+            status_msg = String()
+            status_msg.data = json.dumps({
+                "type": "obstacle_status",
+                "blocked": self.obstacle_detected,
+                "sectors": obstacle_sectors,
+                "distances": distances,
+                "safety_distance_cm": self.SAFETY_DISTANCE_M * 100
+            })
+            self.obstacle_status_pub.publish(status_msg)
+
         # Log state changes
         if self.obstacle_detected:
-            sector_str = ", ".join(obstacle_sectors)
+            sector_str = ", ".join([f"{s.upper()} ({distances.get(s, 0):.1f}cm)" for s in obstacle_sectors])
             if not was_detected or sector_str != self.last_obstacle_sector:
                 self.get_logger().warn(
                     f"⚠️ OBSTACLE DETECTED in {sector_str}! Blocking forward motion."
