@@ -63,10 +63,20 @@ pkill -f "robot.launch.py" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed rob
 # Kill Bluetooth provisioning
 pkill -f "bluetooth_provisioning" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed bluetooth_provisioning"
 
-# Kill WebSocket server and Safety Scanner
-pkill -f "start_server" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed start_server"
-pkill -f "safety_scanner" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed safety_scanner"
-pkill -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hand_gestures_bot"
+# Kill WebSocket server and Safety Scanner (force kill with -9)
+pkill -9 -f "start_server" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed start_server"
+pkill -9 -f "safety_scanner" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed safety_scanner"
+pkill -9 -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hand_gestures_bot"
+
+# Kill any process using port 8765 (WebSocket port)
+if command -v lsof > /dev/null 2>&1; then
+    PORT_PID=$(lsof -ti:8765 2>/dev/null)
+    if [ -n "$PORT_PID" ]; then
+        kill -9 $PORT_PID 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed process on port 8765"
+    fi
+elif command -v fuser > /dev/null 2>&1; then
+    fuser -k 8765/tcp 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed process on port 8765"
+fi
 
 # Wait for cleanup
 sleep 2
