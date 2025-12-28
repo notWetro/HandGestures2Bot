@@ -4,22 +4,25 @@ TurtleBot3 Safety Scanner Node (ROS 2 Humble)
 
 This node evaluates LaserScan sensor data from the robot's LiDAR,
 logs the minimum distances in three front sectors, and automatically
-stops the robot if any obstacle is detected within the safety distance.
+BLOCKS FORWARD MOTION if any obstacle is detected within the safety distance.
 
+Architecture:
 - Subscribes: /scan (sensor_msgs/msg/LaserScan)
-- Publishes: /cmd_vel (geometry_msgs/msg/Twist) - STOP commands when obstacle detected
-- Outputs: Periodic log messages with front sector distances
+- Subscribes: /cmd_vel_in (geometry_msgs/msg/Twist) - incoming commands
+- Publishes: /cmd_vel (geometry_msgs/msg/Twist) - filtered commands
 
 Safety Behavior:
 - If any sector (Left, Center, Right) detects an obstacle within 25 cm,
-  the robot will be stopped (zero velocity published to /cmd_vel)
-- Forward movement is blocked until obstacle clears
+  FORWARD motion (positive linear.x) is blocked
+- Backward and turning motion is always allowed
 - Logging continues every 2 seconds
 
 Sectors (total 45° forward-facing area):
 - Left:   +7.5° to +22.5° (15° sector)
 - Center: -7.5° to +7.5°  (15° sector)
 - Right:  -22.5° to -7.5° (15° sector)
+
+IMPORTANT: Commands should be sent to /cmd_vel_in, NOT /cmd_vel directly!
 """
 
 from __future__ import annotations
@@ -36,20 +39,7 @@ from geometry_msgs.msg import Twist
 
 
 def is_valid_range(value: float) -> bool:
-    """
-    Check if a LaserScan range value is valid.
-    
-    Invalid values include:
-    - inf (infinity)
-    - nan (not a number)
-    - 0 (zero or negative)
-    
-    Args:
-        value: The range value to check (in meters)
-        
-    Returns:
-        True if the value is valid, False otherwise
-    """
+    """Check if a LaserScan range value is valid."""
     if value is None:
         return False
     if value <= 0.0:
@@ -63,13 +53,11 @@ def is_valid_range(value: float) -> bool:
 
 class SafetyScanner(Node):
     """
-    ROS 2 node that evaluates LaserScan data, logs front sector distances,
-    and automatically stops the robot if obstacles are too close.
+    ROS 2 node that filters velocity commands based on obstacle proximity.
     
-    The node subscribes to the /scan topic and:
-    - Periodically (every 2 seconds) logs the minimum valid distance in sectors
-    - Continuously monitors for obstacles within 25 cm
-    - Publishes STOP command to /cmd_vel when obstacle detected
+    Subscribes to /cmd_vel_in for incoming commands and publishes filtered
+    commands to /cmd_vel. Forward motion is blocked when obstacles are
+    detected within the safety distance.
     """
 
     # -------------------------------------------------------------------------
@@ -86,7 +74,6 @@ class SafetyScanner(Node):
     # Safety Configuration
     # -------------------------------------------------------------------------
     SAFETY_DISTANCE_M = 0.25  # 25 cm in meters
-    SAFETY_CHECK_RATE_HZ = 10.0  # Check for obstacles 10 times per second
 
     def __init__(self) -> None:
         """Initialize the SafetyScanner node."""
@@ -95,7 +82,7 @@ class SafetyScanner(Node):
         # Store the latest LaserScan message
         self.latest_scan: Optional[LaserScan] = None
         
-        # Track obstacle state to avoid spamming logs
+        # Track obstacle state
         self.obstacle_detected: bool = False
         self.last_obstacle_sector: str = ""
 
@@ -127,7 +114,17 @@ class SafetyScanner(Node):
         )
 
         # -------------------------------------------------------------------------
-        # Create velocity publisher for STOP commands
+        # Create velocity command subscriber (input)
+        # -------------------------------------------------------------------------
+        self.cmd_vel_in_sub = self.create_subscription(
+            Twist,
+            "/cmd_vel_in",
+            self.cmd_vel_in_callback,
+            cmd_qos,
+        )
+
+        # -------------------------------------------------------------------------
+        # Create velocity publisher (filtered output)
         # -------------------------------------------------------------------------
         self.cmd_vel_pub = self.create_publisher(
             Twist,
@@ -144,39 +141,25 @@ class SafetyScanner(Node):
         )
 
         # -------------------------------------------------------------------------
-        # Create timer for safety checks (10 Hz)
-        # -------------------------------------------------------------------------
-        self.safety_timer = self.create_timer(
-            timer_period_sec=1.0 / self.SAFETY_CHECK_RATE_HZ,
-            callback=self.safety_timer_callback,
-        )
-
-        # -------------------------------------------------------------------------
         # Startup log
         # -------------------------------------------------------------------------
         self.get_logger().info("SafetyScanner node started.")
-        self.get_logger().info("Subscribed to /scan topic.")
-        self.get_logger().info("Publishing STOP commands to /cmd_vel when obstacles detected.")
+        self.get_logger().info("Subscribing to: /scan, /cmd_vel_in")
+        self.get_logger().info("Publishing to: /cmd_vel")
         self.get_logger().info(f"Safety distance: {self.SAFETY_DISTANCE_M * 100:.0f} cm")
-        self.get_logger().info(
-            f"Sectors: Left [{self.LEFT_SECTOR_MIN_DEG}° to {self.LEFT_SECTOR_MAX_DEG}°], "
-            f"Center [{self.CENTER_SECTOR_MIN_DEG}° to {self.CENTER_SECTOR_MAX_DEG}°], "
-            f"Right [{self.RIGHT_SECTOR_MIN_DEG}° to {self.RIGHT_SECTOR_MAX_DEG}°]"
-        )
+        self.get_logger().info("⚠️ Send commands to /cmd_vel_in (NOT /cmd_vel directly!)")
 
     def scan_callback(self, msg: LaserScan) -> None:
-        """Store the latest scan data."""
+        """Store the latest scan data and update obstacle state."""
         self.latest_scan = msg
+        self._update_obstacle_state()
 
-    def safety_timer_callback(self) -> None:
-        """
-        Safety check callback - runs at 10 Hz.
-        Checks for obstacles and publishes STOP if any are too close.
-        """
+    def _update_obstacle_state(self) -> None:
+        """Check for obstacles and update state."""
         if self.latest_scan is None:
+            self.obstacle_detected = False
             return
 
-        # Get minimum distances for all sectors
         left_m = self.get_sector_min_distance(
             self.latest_scan, self.LEFT_SECTOR_MIN_DEG, self.LEFT_SECTOR_MAX_DEG
         )
@@ -196,31 +179,43 @@ class SafetyScanner(Node):
         if right_m is not None and right_m < self.SAFETY_DISTANCE_M:
             obstacle_sectors.append(f"RIGHT ({right_m*100:.1f}cm)")
 
-        if obstacle_sectors:
-            # Obstacle detected - publish STOP command
-            stop_cmd = Twist()
-            stop_cmd.linear.x = 0.0
-            stop_cmd.linear.y = 0.0
-            stop_cmd.linear.z = 0.0
-            stop_cmd.angular.x = 0.0
-            stop_cmd.angular.y = 0.0
-            stop_cmd.angular.z = 0.0
-            self.cmd_vel_pub.publish(stop_cmd)
+        was_detected = self.obstacle_detected
+        self.obstacle_detected = len(obstacle_sectors) > 0
 
-            # Log only on state change to avoid spam
+        # Log state changes
+        if self.obstacle_detected:
             sector_str = ", ".join(obstacle_sectors)
-            if not self.obstacle_detected or sector_str != self.last_obstacle_sector:
+            if not was_detected or sector_str != self.last_obstacle_sector:
                 self.get_logger().warn(
-                    f"⚠️ OBSTACLE DETECTED in {sector_str}! Stopping robot."
+                    f"⚠️ OBSTACLE DETECTED in {sector_str}! Blocking forward motion."
                 )
-                self.obstacle_detected = True
                 self.last_obstacle_sector = sector_str
+        elif was_detected:
+            self.get_logger().info("✓ Obstacle cleared. Forward motion allowed.")
+            self.last_obstacle_sector = ""
+
+    def cmd_vel_in_callback(self, msg: Twist) -> None:
+        """
+        Filter incoming velocity commands.
+        
+        If obstacle detected, blocks forward motion (positive linear.x).
+        Backward motion and turning are always allowed.
+        """
+        output_cmd = Twist()
+        output_cmd.linear.y = msg.linear.y
+        output_cmd.linear.z = msg.linear.z
+        output_cmd.angular.x = msg.angular.x
+        output_cmd.angular.y = msg.angular.y
+        output_cmd.angular.z = msg.angular.z  # Turning always allowed
+
+        if self.obstacle_detected and msg.linear.x > 0.0:
+            # Block forward motion
+            output_cmd.linear.x = 0.0
         else:
-            # Clear obstacle state
-            if self.obstacle_detected:
-                self.get_logger().info("✓ Obstacle cleared. Robot can move.")
-                self.obstacle_detected = False
-                self.last_obstacle_sector = ""
+            # Allow the command
+            output_cmd.linear.x = msg.linear.x
+
+        self.cmd_vel_pub.publish(output_cmd)
 
     def log_timer_callback(self) -> None:
         """

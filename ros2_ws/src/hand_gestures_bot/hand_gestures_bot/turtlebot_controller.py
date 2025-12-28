@@ -17,7 +17,7 @@ class TurtleBotController(Node):
         )
 
         # Publisher for velocity commands
-        self.publisher_ = self.create_publisher(Twist, '/cmd_vel', qos)
+        self.publisher_ = self.create_publisher(Twist, '/cmd_vel_in', qos)
 
         # 🟢 DO NOT publish until the first real command arrives
         self.current_cmd = None
