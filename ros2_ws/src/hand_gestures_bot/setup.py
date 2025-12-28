@@ -23,6 +23,7 @@ setup(
             'start_server = hand_gestures_bot.server:main',
             'safety_auto_stop = hand_gestures_bot.safety_auto_stop:main',
             'environment_scanner = hand_gestures_bot.environment_scanner:main',
+            'safety_scanner = hand_gestures_bot.safety_scanner:main',
         ],
     },
 
