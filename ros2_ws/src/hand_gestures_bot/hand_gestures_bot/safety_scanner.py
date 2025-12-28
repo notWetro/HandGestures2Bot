@@ -275,6 +275,35 @@ class SafetyScanner(Node):
         center_cm = self.meters_to_cm_string(center_m)
         right_cm = self.meters_to_cm_string(right_m)
 
+        # Build distances dict for status message
+        distances = {}
+        obstacle_sectors = []
+        
+        if left_m is not None:
+            distances["left"] = round(left_m * 100, 1)
+            if left_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("left")
+        if center_m is not None:
+            distances["center"] = round(center_m * 100, 1)
+            if center_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("center")
+        if right_m is not None:
+            distances["right"] = round(right_m * 100, 1)
+            if right_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("right")
+
+        # Publish status EVERY timer tick (every 2 seconds)
+        import json
+        status_msg = String()
+        status_msg.data = json.dumps({
+            "type": "obstacle_status",
+            "blocked": self.obstacle_detected,
+            "sectors": obstacle_sectors,
+            "distances": distances,
+            "safety_distance_cm": self.SAFETY_DISTANCE_M * 100
+        })
+        self.obstacle_status_pub.publish(status_msg)
+
         # Add warning indicator if below safety threshold
         def add_warning(val_m: Optional[float], val_str: str) -> str:
             if val_m is not None and val_m < self.SAFETY_DISTANCE_M:
