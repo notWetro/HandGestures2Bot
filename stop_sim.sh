@@ -64,8 +64,9 @@ pkill -9 -f "turtlebot3_gazebo" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Kille
 pkill -9 -f "robot_state_publisher" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed robot_state_publisher"
 pkill -9 -f "spawn_entity" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed spawn_entity"
 
-# Kill WebSocket server
+# Kill WebSocket server and Safety Scanner
 pkill -f "start_server" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed start_server"
+pkill -f "safety_scanner" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed safety_scanner"
 pkill -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hand_gestures_bot"
 
 # Wait for port release

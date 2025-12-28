@@ -63,8 +63,9 @@ pkill -f "robot.launch.py" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed rob
 # Kill Bluetooth provisioning
 pkill -f "bluetooth_provisioning" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed bluetooth_provisioning"
 
-# Kill WebSocket server
+# Kill WebSocket server and Safety Scanner
 pkill -f "start_server" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed start_server"
+pkill -f "safety_scanner" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed safety_scanner"
 pkill -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hand_gestures_bot"
 
 echo ""

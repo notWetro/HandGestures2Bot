@@ -130,9 +130,35 @@ else
 fi
 
 # =============================================================================
-# Test 6: Check WebSocket server process
+# Test 6: Check Safety Scanner process
 # =============================================================================
-echo -e "${BLUE}[Test 6]${NC} WebSocket Server"
+echo -e "${BLUE}[Test 6]${NC} Safety Scanner"
+if pgrep -f "safety_scanner" > /dev/null 2>&1; then
+    run_test "Safety Scanner process running" 0
+else
+    run_test "Safety Scanner process running" 1
+fi
+
+# Check /obstacle_status topic
+OBSTACLE_TOPIC=$(ros2 topic list 2>/dev/null | grep -w "/obstacle_status")
+if [ -n "$OBSTACLE_TOPIC" ]; then
+    run_test "/obstacle_status topic exists" 0
+else
+    run_test "/obstacle_status topic exists" 1
+fi
+
+# Check /cmd_vel_in topic (safety scanner input)
+CMD_VEL_IN_TOPIC=$(ros2 topic list 2>/dev/null | grep -w "/cmd_vel_in")
+if [ -n "$CMD_VEL_IN_TOPIC" ]; then
+    run_test "/cmd_vel_in topic exists" 0
+else
+    run_test "/cmd_vel_in topic exists" 1
+fi
+
+# =============================================================================
+# Test 7: Check WebSocket server process
+# =============================================================================
+echo -e "${BLUE}[Test 7]${NC} WebSocket Server"
 if pgrep -f "start_server" > /dev/null 2>&1 || pgrep -f "hand_gestures_bot" > /dev/null 2>&1; then
     run_test "WebSocket server process running" 0
 else
@@ -158,9 +184,9 @@ elif command -v netstat > /dev/null 2>&1; then
 fi
 
 # =============================================================================
-# Test 7: Check ROS nodes
+# Test 8: Check ROS nodes
 # =============================================================================
-echo -e "${BLUE}[Test 7]${NC} Active ROS 2 Nodes"
+echo -e "${BLUE}[Test 8]${NC} Active ROS 2 Nodes"
 NODE_COUNT=$(ros2 node list 2>/dev/null | wc -l)
 if [ "$NODE_COUNT" -gt 0 ]; then
     run_test "ROS 2 nodes are running ($NODE_COUNT nodes)" 0
@@ -173,9 +199,9 @@ else
 fi
 
 # =============================================================================
-# Test 8: Network connectivity
+# Test 9: Network connectivity
 # =============================================================================
-echo -e "${BLUE}[Test 8]${NC} Network Connectivity"
+echo -e "${BLUE}[Test 9]${NC} Network Connectivity"
 # Get local IP
 LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 if [ -n "$LOCAL_IP" ]; then

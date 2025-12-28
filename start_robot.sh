@@ -9,7 +9,8 @@
 # 4. Exports TurtleBot3 environment variables
 # 5. Launches TurtleBot3 bringup (background)
 # 6. Starts Bluetooth provisioning (background)
-# 7. Starts the WebSocket server (background)
+# 7. Starts the Safety Scanner (background)
+# 8. Starts the WebSocket server (background)
 #
 # All background processes are logged to files in /tmp/turtlebot_logs/
 # =============================================================================
@@ -44,7 +45,7 @@ echo ""
 # =============================================================================
 # Step 1: Source ROS 2 Humble
 # =============================================================================
-echo -e "${BLUE}[1/7]${NC} Sourcing ROS 2 Humble..."
+echo -e "${BLUE}[1/8]${NC} Sourcing ROS 2 Humble..."
 if [ -f /opt/ros/humble/setup.bash ]; then
     source /opt/ros/humble/setup.bash
     echo -e "${GREEN}✓${NC} ROS 2 Humble sourced successfully"
@@ -56,7 +57,7 @@ fi
 # =============================================================================
 # Step 2: Build the ROS 2 workspace
 # =============================================================================
-echo -e "${BLUE}[2/7]${NC} Building ROS 2 workspace..."
+echo -e "${BLUE}[2/8]${NC} Building ROS 2 workspace..."
 cd "$WS"
 colcon build --symlink-install 2>&1 | tee "$LOG_DIR/build.log"
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
@@ -69,7 +70,7 @@ fi
 # =============================================================================
 # Step 3: Source workspace setup
 # =============================================================================
-echo -e "${BLUE}[3/7]${NC} Sourcing workspace setup..."
+echo -e "${BLUE}[3/8]${NC} Sourcing workspace setup..."
 if [ -f "$WS/install/setup.bash" ]; then
     source "$WS/install/setup.bash"
     echo -e "${GREEN}✓${NC} Workspace setup sourced"
@@ -81,7 +82,7 @@ fi
 # =============================================================================
 # Step 4: Export TurtleBot3 environment variables
 # =============================================================================
-echo -e "${BLUE}[4/7]${NC} Setting environment variables..."
+echo -e "${BLUE}[4/8]${NC} Setting environment variables..."
 export TURTLEBOT3_MODEL=burger
 export ROS_DOMAIN_ID=0
 export ROS_LOCALHOST_ONLY=0
@@ -94,7 +95,7 @@ set +e
 # =============================================================================
 # Step 5: Launch TurtleBot3 bringup (background)
 # =============================================================================
-echo -e "${BLUE}[5/7]${NC} Launching TurtleBot3 bringup..."
+echo -e "${BLUE}[5/8]${NC} Launching TurtleBot3 bringup..."
 ros2 launch turtlebot3_bringup robot.launch.py > "$LOG_DIR/turtlebot_bringup.log" 2>&1 &
 BRINGUP_PID=$!
 echo "$BRINGUP_PID turtlebot_bringup" >> "$PID_FILE"
@@ -113,7 +114,7 @@ fi
 # =============================================================================
 # Step 6: Start Bluetooth provisioning (background)
 # =============================================================================
-echo -e "${BLUE}[6/7]${NC} Starting Bluetooth provisioning..."
+echo -e "${BLUE}[6/8]${NC} Starting Bluetooth provisioning..."
 
 # Check if we're running as root for Bluetooth
 if [ "$EUID" -eq 0 ]; then
@@ -136,9 +137,31 @@ else
 fi
 
 # =============================================================================
-# Step 7: Start WebSocket server (background)
+# Step 7: Start Safety Scanner (background)
 # =============================================================================
-echo -e "${BLUE}[7/7]${NC} Starting WebSocket server..."
+echo -e "${BLUE}[7/8]${NC} Starting Safety Scanner..."
+cd "$WS"
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+export TURTLEBOT3_MODEL=burger
+export ROS_DOMAIN_ID=0
+ros2 run hand_gestures_bot safety_scanner > "$LOG_DIR/safety_scanner.log" 2>&1 &
+SCANNER_PID=$!
+echo "$SCANNER_PID safety_scanner" >> "$PID_FILE"
+
+sleep 2
+if kill -0 $SCANNER_PID 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} Safety Scanner started (PID: $SCANNER_PID)"
+    echo -e "   Log: $LOG_DIR/safety_scanner.log"
+else
+    echo -e "${RED}✗ ERROR: Safety Scanner failed to start${NC}"
+    echo -e "   Check log: $LOG_DIR/safety_scanner.log"
+fi
+
+# =============================================================================
+# Step 8: Start WebSocket server (background)
+# =============================================================================
+echo -e "${BLUE}[8/8]${NC} Starting WebSocket server..."
 cd "$WS"
 source /opt/ros/humble/setup.bash
 source install/setup.bash
@@ -171,6 +194,7 @@ echo -e "Log files:"
 echo -e "  • Build:       $LOG_DIR/build.log"
 echo -e "  • Bringup:     $LOG_DIR/turtlebot_bringup.log"
 echo -e "  • Bluetooth:   $LOG_DIR/bluetooth_provisioning.log"
+echo -e "  • Scanner:     $LOG_DIR/safety_scanner.log"
 echo -e "  • Server:      $LOG_DIR/websocket_server.log"
 echo ""
 echo -e "PIDs saved to: $PID_FILE"

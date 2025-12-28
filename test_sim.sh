@@ -134,9 +134,35 @@ else
 fi
 
 # =============================================================================
-# Test 6: Check WebSocket server process
+# Test 6: Check Safety Scanner process
 # =============================================================================
-echo -e "${BLUE}[Test 6]${NC} WebSocket Server"
+echo -e "${BLUE}[Test 6]${NC} Safety Scanner"
+if pgrep -f "safety_scanner" > /dev/null 2>&1; then
+    run_test "Safety Scanner process running" 0
+else
+    run_test "Safety Scanner process running" 1
+fi
+
+# Check /obstacle_status topic
+OBSTACLE_TOPIC=$(ros2 topic list 2>/dev/null | grep -w "/obstacle_status")
+if [ -n "$OBSTACLE_TOPIC" ]; then
+    run_test "/obstacle_status topic exists" 0
+else
+    run_test "/obstacle_status topic exists" 1
+fi
+
+# Check /cmd_vel_in topic (safety scanner input)
+CMD_VEL_IN_TOPIC=$(ros2 topic list 2>/dev/null | grep -w "/cmd_vel_in")
+if [ -n "$CMD_VEL_IN_TOPIC" ]; then
+    run_test "/cmd_vel_in topic exists" 0
+else
+    run_test "/cmd_vel_in topic exists" 1
+fi
+
+# =============================================================================
+# Test 7: Check WebSocket server process
+# =============================================================================
+echo -e "${BLUE}[Test 7]${NC} WebSocket Server"
 if pgrep -f "start_server" > /dev/null 2>&1 || pgrep -f "hand_gestures_bot" > /dev/null 2>&1; then
     run_test "WebSocket server process running" 0
 else
