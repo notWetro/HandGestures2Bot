@@ -95,8 +95,8 @@ else
 fi
 
 # Check /gazebo topics
-GAZEBO_TOPICS=$(ros2 topic list 2>/dev/null | grep -c "gazebo" || echo "0")
-if [ "$GAZEBO_TOPICS" -gt 0 ]; then
+GAZEBO_TOPICS=$(ros2 topic list 2>/dev/null | grep "gazebo" | wc -l)
+if [ "$GAZEBO_TOPICS" -gt 0 ] 2>/dev/null; then
     run_test "Gazebo topics found ($GAZEBO_TOPICS topics)" 0
 else
     run_test "Gazebo topics found" 1
@@ -181,11 +181,11 @@ fi
 # =============================================================================
 echo -e "${BLUE}[Test 8]${NC} Robot Model in Simulation"
 # Check for TurtleBot-specific nodes/topics
-TB_TOPICS=$(ros2 topic list 2>/dev/null | grep -c "turtlebot" || echo "0")
-DIFF_DRIVE=$(ros2 topic list 2>/dev/null | grep -c "diff_drive" || echo "0")
+TB_TOPICS=$(ros2 topic list 2>/dev/null | grep "turtlebot" | wc -l)
+DIFF_DRIVE=$(ros2 topic list 2>/dev/null | grep "diff_drive" | wc -l)
 ODOM=$(ros2 topic list 2>/dev/null | grep -w "/odom")
 
-if [ "$TB_TOPICS" -gt 0 ] || [ "$DIFF_DRIVE" -gt 0 ]; then
+if [ "$TB_TOPICS" -gt 0 ] 2>/dev/null || [ "$DIFF_DRIVE" -gt 0 ] 2>/dev/null; then
     run_test "TurtleBot3 model loaded in simulation" 0
 elif [ -n "$ODOM" ]; then
     run_test "Robot model detected (via /odom)" 0
