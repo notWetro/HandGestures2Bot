@@ -93,11 +93,17 @@ class ObstacleStatusSubscriber:
     
     def callback(self, msg):
         """Forward obstacle status to all connected clients."""
+        print(f"[DEBUG] Received obstacle status: {msg.data[:50]}...")
+        print(f"[DEBUG] Connected clients: {len(connected_clients)}")
         if connected_clients:
-            asyncio.run_coroutine_threadsafe(
-                broadcast_message(msg.data),
-                self.loop
-            )
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    broadcast_message(msg.data),
+                    self.loop
+                )
+                print("[DEBUG] Scheduled broadcast")
+            except Exception as e:
+                print(f"[DEBUG] Error broadcasting: {e}")
 
 
 def main(args=None):
