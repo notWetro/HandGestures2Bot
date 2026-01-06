@@ -28,6 +28,7 @@ IMPORTANT: Commands should be sent to /cmd_vel_in, NOT /cmd_vel directly!
 from __future__ import annotations
 
 import math
+import time
 from typing import Optional
 
 import rclpy
@@ -37,6 +38,11 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPo
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
+
+try:
+    from turtlebot3_msgs.msg import Sound  # type: ignore
+except Exception:  # pragma: no cover
+    Sound = None  # type: ignore
 
 
 def is_valid_range(value: float) -> bool:
@@ -76,6 +82,16 @@ class SafetyScanner(Node):
     # -------------------------------------------------------------------------
     SAFETY_DISTANCE_M = 0.25  # 25 cm in meters
 
+    # -------------------------------------------------------------------------
+    # Beep Configuration (parking-sensor like)
+    # -------------------------------------------------------------------------
+    BEEP_NEAR_M = 0.25
+    BEEP_MID_M = 0.30
+    BEEP_FAR_M = 0.40
+
+    BEEP_NEAR_INTERVAL_S = 0.25
+    BEEP_MID_INTERVAL_S = 0.6
+
     def __init__(self) -> None:
         """Initialize the SafetyScanner node."""
         super().__init__("safety_scanner")
@@ -86,6 +102,12 @@ class SafetyScanner(Node):
         # Track obstacle state
         self.obstacle_detected: bool = False
         self.last_obstacle_sector: str = ""
+
+        # -------------------------------------------------------------------------
+        # Beep state
+        # -------------------------------------------------------------------------
+        self._last_beep_time_s: float = 0.0
+        self._far_beep_done: bool = False
 
         # -------------------------------------------------------------------------
         # QoS Profiles
@@ -143,11 +165,30 @@ class SafetyScanner(Node):
         )
 
         # -------------------------------------------------------------------------
+        # Optional sound publisher (TurtleBot3 buzzer)
+        # -------------------------------------------------------------------------
+        self.sound_pub = None
+        if Sound is not None:
+            self.sound_pub = self.create_publisher(
+                Sound,
+                "/sound",
+                cmd_qos,
+            )
+
+        # -------------------------------------------------------------------------
         # Create timer for periodic logging (every 2 seconds)
         # -------------------------------------------------------------------------
         self.log_timer = self.create_timer(
             timer_period_sec=2.0,
             callback=self.log_timer_callback,
+        )
+
+        # -------------------------------------------------------------------------
+        # Beep timer (10Hz)
+        # -------------------------------------------------------------------------
+        self.beep_timer = self.create_timer(
+            timer_period_sec=0.1,
+            callback=self.beep_timer_callback,
         )
 
         # -------------------------------------------------------------------------
@@ -158,6 +199,77 @@ class SafetyScanner(Node):
         self.get_logger().info("Publishing to: /cmd_vel, /obstacle_status")
         self.get_logger().info(f"Safety distance: {self.SAFETY_DISTANCE_M * 100:.0f} cm")
         self.get_logger().info("⚠️ Send commands to /cmd_vel_in (NOT /cmd_vel directly!)")
+        if self.sound_pub is not None:
+            self.get_logger().info("Beep enabled: publishing to /sound")
+        else:
+            self.get_logger().warn("Beep disabled: turtlebot3_msgs/Sound not available")
+
+    def _publish_beep(self) -> None:
+        if self.sound_pub is None or Sound is None:
+            return
+
+        msg = Sound()
+        # turtlebot3_msgs/Sound usually provides ON constant, but fall back to 1.
+        msg.value = getattr(Sound, "ON", 1)
+        self.sound_pub.publish(msg)
+
+    def _get_front_min_distance(self) -> Optional[float]:
+        if self.latest_scan is None:
+            return None
+
+        left_m = self.get_sector_min_distance(
+            self.latest_scan, self.LEFT_SECTOR_MIN_DEG, self.LEFT_SECTOR_MAX_DEG
+        )
+        center_m = self.get_sector_min_distance(
+            self.latest_scan, self.CENTER_SECTOR_MIN_DEG, self.CENTER_SECTOR_MAX_DEG
+        )
+        right_m = self.get_sector_min_distance(
+            self.latest_scan, self.RIGHT_SECTOR_MIN_DEG, self.RIGHT_SECTOR_MAX_DEG
+        )
+
+        candidates = [d for d in (left_m, center_m, right_m) if d is not None]
+        if not candidates:
+            return None
+        return min(candidates)
+
+    def beep_timer_callback(self) -> None:
+        """Emit beeps depending on closest obstacle distance in front sectors."""
+        if self.sound_pub is None:
+            return
+
+        front_min_m = self._get_front_min_distance()
+        if front_min_m is None:
+            self._far_beep_done = False
+            return
+
+        now_s = time.monotonic()
+
+        # Very close: fast beeps
+        if front_min_m <= self.BEEP_NEAR_M:
+            if (now_s - self._last_beep_time_s) >= self.BEEP_NEAR_INTERVAL_S:
+                self._publish_beep()
+                self._last_beep_time_s = now_s
+            self._far_beep_done = True
+            return
+
+        # Close: slower beeps
+        if front_min_m <= self.BEEP_MID_M:
+            if (now_s - self._last_beep_time_s) >= self.BEEP_MID_INTERVAL_S:
+                self._publish_beep()
+                self._last_beep_time_s = now_s
+            self._far_beep_done = True
+            return
+
+        # Far: single beep once when entering this band
+        if front_min_m <= self.BEEP_FAR_M:
+            if not self._far_beep_done:
+                self._publish_beep()
+                self._last_beep_time_s = now_s
+                self._far_beep_done = True
+            return
+
+        # Clear
+        self._far_beep_done = False
 
     def scan_callback(self, msg: LaserScan) -> None:
         """Store the latest scan data and update obstacle state."""

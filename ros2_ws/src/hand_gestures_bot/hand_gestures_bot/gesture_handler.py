@@ -9,6 +9,10 @@ class MovementHandler:
             self.bot.get_logger().info("Movement: forward → Moving Forward")
             self.bot.move_forward()
 
+        elif movement in {"back", "backward", "reverse", "rueckwaerts", "ruckwarts", "rückwärts", "rückwaerts"}:
+            self.bot.get_logger().info("Movement: back → Moving Backward")
+            self.bot.move_backward()
+
         elif movement == "left":
             self.bot.get_logger().info("Movement: left → Turning Left")
             self.bot.turn_left()

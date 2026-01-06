@@ -23,14 +23,19 @@ class TurtleBotController(Node):
         self.current_cmd = None
 
         # Watchdog timing
+        # By default, keep executing the last received command until a new one arrives.
+        # Set command_timeout_sec > 0.0 to re-enable auto-stop behavior.
+        self.declare_parameter("command_timeout_sec", 0.0)
+        self.timeout_duration = float(self.get_parameter("command_timeout_sec").value)
         self.last_command_time = time.time()
-        self.timeout_duration = 0.5  # auto-stop after 0.5 sec
 
         # Continuous publishing at 10Hz (same as ros2 topic pub -r 10)
         self.publisher_timer = self.create_timer(0.1, self.publish_continuous)
 
-        # Watchdog timer (disabled for now)
-        self.watchdog_timer = self.create_timer(0.1, self.watchdog_check)
+        # Watchdog timer (optional)
+        self.watchdog_timer = None
+        if self.timeout_duration and self.timeout_duration > 0.0:
+            self.watchdog_timer = self.create_timer(0.1, self.watchdog_check)
 
         self.get_logger().info("TurtleBot Controller Initialized (READY)")
 
@@ -46,6 +51,14 @@ class TurtleBotController(Node):
         self.current_cmd = msg
         self.last_command_time = time.time()
         self.get_logger().info("CMD: FORWARD")
+
+    def move_backward(self):
+        msg = Twist()
+        msg.linear.x = -0.21
+        msg.angular.z = 0.0
+        self.current_cmd = msg
+        self.last_command_time = time.time()
+        self.get_logger().info("CMD: BACKWARD")
 
     def turn_left(self):
         msg = Twist()
@@ -86,6 +99,8 @@ class TurtleBotController(Node):
         """
         If no command received recently → force STOP.
         """
+        if not self.timeout_duration or self.timeout_duration <= 0.0:
+            return
         if (time.time() - self.last_command_time) > self.timeout_duration:
             self.current_cmd = Twist()
             self.publisher_.publish(self.current_cmd)
