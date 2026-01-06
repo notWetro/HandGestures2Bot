@@ -30,10 +30,98 @@ ssid_value: Optional[str] = None
 password_value: Optional[str] = None
 status_value: str = "idle"
 ip_value: Optional[str] = None
+last_error: Optional[str] = None
+
+
+def _run(cmd, timeout: int = 10) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+
+
+def _nmcli_cmd() -> Optional[str]:
+    nmcli_paths = ["/usr/bin/nmcli", "/bin/nmcli", "nmcli"]
+    for path in nmcli_paths:
+        try:
+            _run([path, "--version"], timeout=5)
+            return path
+        except FileNotFoundError:
+            continue
+        except Exception:
+            continue
+    return None
+
+
+def _nmcli_get_active_connection(nmcli: str) -> Optional[Tuple[str, str]]:
+    """Return (name, uuid) of active connection on WLAN_INTERFACE, if any."""
+    try:
+        res = _run([nmcli, "-t", "-f", "NAME,UUID,DEVICE", "con", "show", "--active"], timeout=5)
+        if res.returncode != 0:
+            return None
+        for line in (res.stdout or "").splitlines():
+            parts = line.split(":")
+            if len(parts) >= 3 and parts[2] == WLAN_INTERFACE:
+                return parts[0], parts[1]
+    except Exception:
+        return None
+    return None
+
+
+def _nmcli_restore_connection(nmcli: str, prev: Tuple[str, str]) -> None:
+    name, uuid = prev
+    logging.info("Restoring previous Wi-Fi connection: %s (%s)", name, uuid)
+    # Try UUID first, then name
+    _run([nmcli, "con", "up", "uuid", uuid, "ifname", WLAN_INTERFACE], timeout=20)
+    _run([nmcli, "con", "up", "id", name, "ifname", WLAN_INTERFACE], timeout=20)
+
+
+def _wpa_get_current_network_id() -> Optional[str]:
+    try:
+        res = _run(["wpa_cli", "-i", WLAN_INTERFACE, "status"], timeout=5)
+        if res.returncode != 0:
+            return None
+        for line in (res.stdout or "").splitlines():
+            if line.startswith("id="):
+                return line.split("=", 1)[1].strip()
+    except FileNotFoundError:
+        return None
+    except Exception:
+        return None
+    return None
+
+
+def _wpa_restore_network(prev_id: str) -> None:
+    logging.info("Restoring previous wpa_supplicant network id=%s", prev_id)
+    _run(["wpa_cli", "-i", WLAN_INTERFACE, "enable_network", prev_id], timeout=5)
+    _run(["wpa_cli", "-i", WLAN_INTERFACE, "select_network", prev_id], timeout=5)
+
+
+def _wifi_is_already_connected_to(ssid: str) -> bool:
+    """Best-effort check to avoid switching when already on target SSID."""
+    nmcli = _nmcli_cmd()
+    if not nmcli:
+        return False
+    try:
+        res = _run([nmcli, "-t", "-f", "ACTIVE,SSID,DEVICE", "dev", "wifi"], timeout=5)
+        if res.returncode != 0:
+            return False
+        for line in (res.stdout or "").splitlines():
+            parts = line.split(":")
+            if len(parts) >= 3 and parts[0] == "yes" and parts[2] == WLAN_INTERFACE:
+                return parts[1] == ssid
+    except Exception:
+        return False
+    return False
 
 
 def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
     """Connect to Wi-Fi. Tries wpa_supplicant first, then nmcli."""
+
+    # If already connected to that SSID, treat as success.
+    if _wifi_is_already_connected_to(ssid):
+        return True, None
+
+    prev_wpa_id = _wpa_get_current_network_id()
+    prev_nmcli = _nmcli_cmd()
+    prev_nm_conn = _nmcli_get_active_connection(prev_nmcli) if prev_nmcli else None
     
     # Method 1: Try wpa_cli (for wpa_supplicant managed interfaces)
     try:
@@ -83,25 +171,31 @@ def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
                         subprocess.run(["dhclient", WLAN_INTERFACE], capture_output=True, timeout=15)
                         return True, None
                 
+                # Cleanup + restore previous Wi-Fi
+                try:
+                    _run(["wpa_cli", "-i", WLAN_INTERFACE, "remove_network", network_id], timeout=5)
+                except Exception:
+                    pass
+                if prev_wpa_id is not None:
+                    _wpa_restore_network(prev_wpa_id)
                 return False, "Connection timeout (wpa_supplicant)"
             else:
+                try:
+                    _run(["wpa_cli", "-i", WLAN_INTERFACE, "remove_network", network_id], timeout=5)
+                except Exception:
+                    pass
+                if prev_wpa_id is not None:
+                    _wpa_restore_network(prev_wpa_id)
                 return False, f"wpa_cli select failed: {result.stdout}"
     except FileNotFoundError:
         pass  # wpa_cli not available, try nmcli
     except Exception as e:
         logging.warning("wpa_cli method failed: %s, trying nmcli", e)
+        if prev_wpa_id is not None:
+            _wpa_restore_network(prev_wpa_id)
     
     # Method 2: Try nmcli (for NetworkManager managed interfaces)
-    nmcli_paths = ["/usr/bin/nmcli", "/bin/nmcli", "nmcli"]
-    nmcli_cmd = None
-    for path in nmcli_paths:
-        try:
-            subprocess.run([path, "--version"], capture_output=True, timeout=5)
-            nmcli_cmd = path
-            break
-        except:
-            continue
-    
+    nmcli_cmd = _nmcli_cmd()
     if not nmcli_cmd:
         return False, "Neither wpa_cli nor nmcli available"
     
@@ -113,11 +207,18 @@ def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
         if result.returncode != 0:
             reason = (result.stderr or result.stdout).strip() or f"nmcli failed with code {result.returncode}"
+            # Restore previous connection if we had one
+            if prev_nm_conn is not None:
+                _nmcli_restore_connection(nmcli_cmd, prev_nm_conn)
             return False, reason
         return True, None
     except subprocess.TimeoutExpired:
+        if prev_nm_conn is not None:
+            _nmcli_restore_connection(nmcli_cmd, prev_nm_conn)
         return False, "Connection timeout (15s)"
     except Exception as e:
+        if prev_nm_conn is not None:
+            _nmcli_restore_connection(nmcli_cmd, prev_nm_conn)
         return False, str(e)
 
 
@@ -139,15 +240,18 @@ def get_status_json() -> str:
     payload = {"status": status_value}
     if ip_value:
         payload["ip"] = ip_value
+    if last_error:
+        payload["error"] = last_error
     return json.dumps(payload)
 
 
 def try_provision():
     """Attempt Wi-Fi provisioning if both SSID and password are set."""
-    global ssid_value, password_value, status_value, ip_value
+    global ssid_value, password_value, status_value, ip_value, last_error
     
     if ssid_value and password_value:
         status_value = "connecting"
+        last_error = None
         
         # Capture values and reset immediately
         ssid = ssid_value
@@ -168,9 +272,13 @@ def try_provision():
                 logging.info("Provisioning complete: %s -> %s", ssid, ip)
             else:
                 status_value = "failed"
+                last_error = "Connected but no IPv4 address"
                 logging.warning("Connected but no IPv4 address")
         else:
             status_value = "failed"
+            last_error = reason
+            # If we restored/kept an existing Wi-Fi connection, keep reporting IP.
+            ip_value = get_wlan_ip() or ip_value
             logging.warning("Wi-Fi connect failed: %s", reason)
 
 
