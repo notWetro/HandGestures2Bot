@@ -4,7 +4,7 @@ class DanceMove {
   final List<DanceStep> steps;
   String? assignedGesture;
   String? musicPath;
-
+  List<double>? triggerGesture;
 
   DanceMove({
     required this.id,
@@ -12,6 +12,7 @@ class DanceMove {
     required this.steps,
     this.assignedGesture,
     this.musicPath,
+    this.triggerGesture,
   });
 
   Map<String, dynamic> toJson() {
@@ -21,6 +22,7 @@ class DanceMove {
       'steps': steps.map((s) => s.toJson()).toList(),
       'assignedGesture': assignedGesture,
       'musicPath': musicPath,
+      'triggerGesture': triggerGesture,
     };
   }
 
@@ -33,6 +35,9 @@ class DanceMove {
           .toList(),
       assignedGesture: json['assignedGesture'] as String?,
       musicPath: json['musicPath'] as String?,
+      triggerGesture: json['triggerGesture'] != null
+          ? List<double>.from(json['triggerGesture'])
+          : null,
     );
   }
 
@@ -42,6 +47,7 @@ class DanceMove {
     List<DanceStep>? steps,
     String? assignedGesture,
     String? musicPath,
+    List<double>? triggerGesture,
   }) {
     return DanceMove(
       id: id ?? this.id,
@@ -49,6 +55,7 @@ class DanceMove {
       steps: steps ?? this.steps,
       assignedGesture: assignedGesture ?? this.assignedGesture,
       musicPath: musicPath ?? this.musicPath,
+      triggerGesture: triggerGesture ?? this.triggerGesture,
     );
   }
 }

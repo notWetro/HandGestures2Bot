@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/dance_move.dart';
-import 'package:file_picker/file_picker.dart'; 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutterapp/views/settings_pages/save_gesture_view.dart';
+
 
 class CreateDanceView extends StatefulWidget {
   final DanceMove? existingDance;
@@ -16,6 +18,7 @@ class _CreateDanceViewState extends State<CreateDanceView> {
   final List<DanceStep> _steps = [];
   String? _selectedMusicPath;
   String? _selectedMusicName;
+  List<double>? _recordedGesture;
 
   
   final List<String> _availableMovements = [
@@ -80,34 +83,33 @@ class _CreateDanceViewState extends State<CreateDanceView> {
   }
 
   Future<void> pickMp3() async {
-  try {
-    debugPrint("📂 Öffne MP3 Picker");
+    try {
+      debugPrint("📂 Öffne MP3 Picker");
 
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['mp3'],
-      allowMultiple: false,
-    );
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp3'],
+        allowMultiple: false,
+      );
 
-    if (result == null) {
-      debugPrint("❌ Picker abgebrochen");
-      return;
+      if (result == null) {
+        debugPrint("❌ Picker abgebrochen");
+        return;
+      }
+
+      final file = result.files.single;
+
+      setState(() {
+        _selectedMusicPath = file.path;
+        _selectedMusicName = file.name;
+      });
+
+      debugPrint("✅ MP3 gewählt: ${file.name}");
+      debugPrint("📍 Pfad: ${file.path}");
+    } catch (e) {
+      debugPrint("🔥 Picker Fehler: $e");
     }
-
-    final file = result.files.single;
-
-    setState(() {
-      _selectedMusicPath = file.path;
-      _selectedMusicName = file.name;
-    });
-
-    debugPrint("✅ MP3 gewählt: ${file.name}");
-    debugPrint("📍 Pfad: ${file.path}");
-  } catch (e) {
-    debugPrint("🔥 Picker Fehler: $e");
   }
-}
-
 
   void _saveDance() {
     if (_nameController.text.trim().isEmpty) {
@@ -116,6 +118,14 @@ class _CreateDanceViewState extends State<CreateDanceView> {
       );
       return;
     }
+
+    if (_recordedGesture == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please record a gesture for this dance')),
+      );
+      return;
+    }
+
 
     if (_steps.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -130,6 +140,7 @@ class _CreateDanceViewState extends State<CreateDanceView> {
       steps: _steps,
       assignedGesture: widget.existingDance?.assignedGesture,
       musicPath: _selectedMusicPath,
+      triggerGesture: _recordedGesture,
     );
 
     Navigator.pop(context, dance);
@@ -211,71 +222,116 @@ class _CreateDanceViewState extends State<CreateDanceView> {
                   children: [
                     const Icon(Icons.music_note, color: Colors.purple),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _selectedMusicName ?? 'Select MP3 from device',
-                        style: TextStyle(
-                          color: _selectedMusicName == null
-                              ? Colors.grey
-                              : Colors.black,
+                      Expanded(
+                        child: Text(
+                          _selectedMusicName ?? 'Select MP3 from device',
+                          style: TextStyle(
+                            color: _selectedMusicName == null
+                                ? Colors.grey
+                                : Colors.black,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const Icon(Icons.folder_open),
-                  ],
+                      const Icon(Icons.folder_open),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                const Text(
-                  'Movement Blocks:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _availableMovements.map((movement) {
-                return ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _getColorForMovement(movement),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  const Text(
+                    'Movement Blocks:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  icon: Icon(_getIconForMovement(movement)),
-                  label: Text(movement.toUpperCase()),
-                  onPressed: () => _addStep(movement),
-                );
-              }).toList(),
+                ],
+              ),
             ),
-          ),
-          const Divider(thickness: 2),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              children: [
-                const Text(
-                  'Dance Sequence:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                Text(
-                  '${_steps.length} steps',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _availableMovements.map((movement) {
+                  return ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _getColorForMovement(movement),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    icon: Icon(_getIconForMovement(movement)),
+                    label: Text(movement.toUpperCase()),
+                    onPressed: () => _addStep(movement),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: ElevatedButton.icon(
+                icon: Icon(
+                  _recordedGesture == null
+                      ? Icons.fiber_manual_record
+                      : Icons.check,
+                ),
+                label: Text(
+                  _recordedGesture == null
+                      ? 'Record Gesture for this Dance'
+                      : 'Gesture Recorded',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      _recordedGesture == null ? Colors.red : Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () async {
+                  final danceName = _nameController.text.trim().isEmpty
+                      ? 'Dance Gesture'
+                      : _nameController.text.trim();
+
+                  final recordedGestureName = await Navigator.push<String>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SaveGestureView(
+                        currentGesture: danceName,
+                        actionName: danceName,
+                      ),
+                    ),
+                  );
+
+                  if (recordedGestureName != null) {
+                    setState(() {
+                      _recordedGesture = [1.0]; // Flag: Geste wurde aufgenommen
+                    });
+                  }
+                },
+              ),
+            ),
+            const Divider(thickness: 2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  const Text(
+                    'Dance Sequence:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_steps.length} steps',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: _steps.isEmpty
                 ? Center(
