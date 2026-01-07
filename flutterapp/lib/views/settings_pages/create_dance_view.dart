@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/dance_move.dart';
+import 'package:file_picker/file_picker.dart'; 
 
 class CreateDanceView extends StatefulWidget {
   final DanceMove? existingDance;
@@ -13,6 +14,9 @@ class CreateDanceView extends StatefulWidget {
 class _CreateDanceViewState extends State<CreateDanceView> {
   final TextEditingController _nameController = TextEditingController();
   final List<DanceStep> _steps = [];
+  String? _selectedMusicPath;
+  String? _selectedMusicName;
+
   
   final List<String> _availableMovements = [
     'forward',
@@ -75,6 +79,36 @@ class _CreateDanceViewState extends State<CreateDanceView> {
     }
   }
 
+  Future<void> pickMp3() async {
+  try {
+    debugPrint("📂 Öffne MP3 Picker");
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp3'],
+      allowMultiple: false,
+    );
+
+    if (result == null) {
+      debugPrint("❌ Picker abgebrochen");
+      return;
+    }
+
+    final file = result.files.single;
+
+    setState(() {
+      _selectedMusicPath = file.path;
+      _selectedMusicName = file.name;
+    });
+
+    debugPrint("✅ MP3 gewählt: ${file.name}");
+    debugPrint("📍 Pfad: ${file.path}");
+  } catch (e) {
+    debugPrint("🔥 Picker Fehler: $e");
+  }
+}
+
+
   void _saveDance() {
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -95,6 +129,7 @@ class _CreateDanceViewState extends State<CreateDanceView> {
       name: _nameController.text.trim(),
       steps: _steps,
       assignedGesture: widget.existingDance?.assignedGesture,
+      musicPath: _selectedMusicPath,
     );
 
     Navigator.pop(context, dance);
@@ -159,6 +194,41 @@ class _CreateDanceViewState extends State<CreateDanceView> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: GestureDetector(
+              onTap: () async {
+                await pickMp3();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey),
+                  color: Colors.white,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.music_note, color: Colors.purple),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _selectedMusicName ?? 'Select MP3 from device',
+                        style: TextStyle(
+                          color: _selectedMusicName == null
+                              ? Colors.grey
+                              : Colors.black,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.folder_open),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(

@@ -8,6 +8,10 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]?
   ) -> Bool {
+    
+    // Test Zeile
+    GeneratedPluginRegistrant.register(with: self)
+
 
     let controller = window?.rootViewController as! FlutterViewController
 
@@ -137,8 +141,7 @@ import UIKit
     let factory = SwiftCameraViewFactory(messenger: controller.binaryMessenger)
     registrar(forPlugin: "my_camera_view")?
         .register(factory, withId: "my_camera_view")
-
+      
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
-

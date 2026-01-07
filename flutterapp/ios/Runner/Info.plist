@@ -31,14 +31,14 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>This app requires the camera for real-time hand tracking.
-This app requires the camera for real-time hand tracking.
-</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>This app uses Bluetooth to connect and configure your robot.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>This app uses Bluetooth to connect and configure your robot.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires the camera for real-time hand tracking.
+This app requires the camera for real-time hand tracking.
+</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -51,6 +51,20 @@ This app requires the camera for real-time hand tracking.
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>Privacy - Documents Folder Usage Description
+</key>
+	<string>This app needs access to music files to select MP3s for dances.
+</string>
+	<key>Privacy - File Provider Domain Usage Description
+</key>
+	<string>This app needs access to files to select MP3 music.
+</string>
+	<key>Application supports iTunes file sharing
+</key>
+	<true/>
+	<key>Supports opening documents in place
+</key>
+	<true/>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
