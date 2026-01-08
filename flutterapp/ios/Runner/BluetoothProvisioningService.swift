@@ -24,6 +24,8 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     private var statusCallback: ((String) -> Void)?
     private var ipCallback: ((String) -> Void)?
+
+    private var connectCallback: ((Bool, String?) -> Void)?
     
     override init() {
         super.init()
@@ -117,6 +119,9 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func connectToDevice(deviceId: String, callback: @escaping (Bool, String?) -> Void) {
         print("🔵 BLE Native: Connecting to device: \(deviceId)")
+
+        // Keep only the latest attempt; ensure we complete it exactly once.
+        connectCallback = callback
         
         guard let uuid = UUID(uuidString: deviceId) else {
             callback(false, "Invalid device ID")
@@ -133,7 +138,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         peripheral.delegate = self
         centralManager.connect(peripheral, options: nil)
         
-        // Callback will be called in didConnect delegate
+        // Callback will be completed once characteristics are discovered (or on failure)
     }
     
     func sendWiFiCredentials(ssid: String, password: String, callback: @escaping (Bool, String?) -> Void) {
@@ -203,6 +208,10 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         print("❌ BLE Native: Failed to connect: \(error?.localizedDescription ?? "unknown")")
+        if let cb = connectCallback {
+            connectCallback = nil
+            cb(false, error?.localizedDescription ?? "Failed to connect")
+        }
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
@@ -213,6 +222,14 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     // MARK: - CBPeripheralDelegate
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        if let error = error {
+            print("❌ BLE Native: Service discovery error: \(error.localizedDescription)")
+            if let cb = connectCallback {
+                connectCallback = nil
+                cb(false, error.localizedDescription)
+            }
+            return
+        }
         guard let services = peripheral.services else { return }
         
         for service in services {
@@ -224,6 +241,14 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        if let error = error {
+            print("❌ BLE Native: Characteristic discovery error: \(error.localizedDescription)")
+            if let cb = connectCallback {
+                connectCallback = nil
+                cb(false, error.localizedDescription)
+            }
+            return
+        }
         guard let characteristics = service.characteristics else { return }
         
         for characteristic in characteristics {
@@ -241,6 +266,14 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
                 peripheral.setNotifyValue(true, for: characteristic)
             default:
                 break
+            }
+        }
+
+        // Consider the device "ready" when we have all characteristics we need.
+        if ssidCharacteristic != nil, passwordCharacteristic != nil, statusCharacteristic != nil {
+            if let cb = connectCallback {
+                connectCallback = nil
+                cb(true, nil)
             }
         }
     }
