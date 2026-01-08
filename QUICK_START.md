@@ -26,6 +26,14 @@ sudo systemctl start bluetooth-provisioning
 sudo journalctl -u bluetooth-provisioning -f
 ```
 
+Alternative (ohne systemd):
+
+```bash
+chmod +x ./start_bluetooth_provisioning.sh
+./start_bluetooth_provisioning.sh
+tail -f /tmp/turtlebot_logs/bluetooth_provisioning.log
+```
+
 ### In der Flutter App:
 
 1. **Settings** → **Bluetooth WiFi Setup**

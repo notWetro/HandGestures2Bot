@@ -116,24 +116,28 @@ fi
 # =============================================================================
 echo -e "${BLUE}[6/8]${NC} Starting Bluetooth provisioning..."
 
-# Check if we're running as root for Bluetooth
-if [ "$EUID" -eq 0 ]; then
-    cd "$SCRIPT_DIR/provisioning/bluetooth_wifi"
-    python3 bluetooth_provisioning.py > "$LOG_DIR/bluetooth_provisioning.log" 2>&1 &
-    BT_PID=$!
-    echo "$BT_PID bluetooth_provisioning" >> "$PID_FILE"
-    
-    sleep 2
-    if kill -0 $BT_PID 2>/dev/null; then
-        echo -e "${GREEN}✓${NC} Bluetooth provisioning started (PID: $BT_PID)"
-        echo -e "   Log: $LOG_DIR/bluetooth_provisioning.log"
-    else
-        echo -e "${RED}✗ ERROR: Bluetooth provisioning failed to start${NC}"
-        echo -e "   Check log: $LOG_DIR/bluetooth_provisioning.log"
-    fi
-else
+# Bluetooth needs root privileges. If we are not root, prompt once and start via sudo.
+BT_LOG="$LOG_DIR/bluetooth_provisioning.log"
+
+if [ "$EUID" -ne 0 ]; then
     echo -e "${YELLOW}⚠${NC} Bluetooth provisioning requires root privileges"
-    echo -e "   Skipping. Run separately with: sudo $SCRIPT_DIR/start_bluetooth_provisioning.sh"
+    echo -e "   Requesting sudo (you may be prompted)..."
+    sudo -v
+    sudo -E "$SCRIPT_DIR/start_bluetooth_provisioning.sh" > /dev/null 2>&1
+else
+    "$SCRIPT_DIR/start_bluetooth_provisioning.sh" > /dev/null 2>&1
+fi
+
+# Try to discover the process PID for reporting
+sleep 2
+BT_PID=$(pgrep -f "bluetooth_provisioning.py" | head -n 1)
+if [ -n "$BT_PID" ] && kill -0 "$BT_PID" 2>/dev/null; then
+    echo "$BT_PID bluetooth_provisioning" >> "$PID_FILE"
+    echo -e "${GREEN}✓${NC} Bluetooth provisioning started (PID: $BT_PID)"
+    echo -e "   Log: $BT_LOG"
+else
+    echo -e "${RED}✗ ERROR: Bluetooth provisioning failed to start${NC}"
+    echo -e "   Check log: $BT_LOG"
 fi
 
 # =============================================================================
