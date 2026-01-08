@@ -18,8 +18,7 @@ class _CreateDanceViewState extends State<CreateDanceView> {
   final List<DanceStep> _steps = [];
   String? _selectedMusicPath;
   String? _selectedMusicName;
-  List<double>? _recordedGesture;
-
+  String? _recordedGestureName;
   
   final List<String> _availableMovements = [
     'forward',
@@ -118,14 +117,13 @@ class _CreateDanceViewState extends State<CreateDanceView> {
       );
       return;
     }
-
-    if (_recordedGesture == null) {
+    
+    if (_recordedGestureName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please record a gesture for this dance')),
       );
       return;
     }
-
 
     if (_steps.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,9 +136,8 @@ class _CreateDanceViewState extends State<CreateDanceView> {
       id: widget.existingDance?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text.trim(),
       steps: _steps,
-      assignedGesture: widget.existingDance?.assignedGesture,
       musicPath: _selectedMusicPath,
-      triggerGesture: _recordedGesture,
+      assignedGesture: _recordedGestureName,
     );
 
     Navigator.pop(context, dance);
@@ -274,18 +271,18 @@ class _CreateDanceViewState extends State<CreateDanceView> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: ElevatedButton.icon(
                 icon: Icon(
-                  _recordedGesture == null
+                  _recordedGestureName == null
                       ? Icons.fiber_manual_record
                       : Icons.check,
                 ),
                 label: Text(
-                  _recordedGesture == null
+                  _recordedGestureName == null
                       ? 'Record Gesture for this Dance'
                       : 'Gesture Recorded',
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      _recordedGesture == null ? Colors.red : Colors.green,
+                      _recordedGestureName == null ? Colors.red : Colors.green,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -309,7 +306,7 @@ class _CreateDanceViewState extends State<CreateDanceView> {
 
                   if (recordedGestureName != null) {
                     setState(() {
-                      _recordedGesture = [1.0]; // Flag: Geste wurde aufgenommen
+                      _recordedGestureName = recordedGestureName;
                     });
                   }
                 },
