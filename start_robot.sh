@@ -123,9 +123,9 @@ if [ "$EUID" -ne 0 ]; then
     echo -e "${YELLOW}⚠${NC} Bluetooth provisioning requires root privileges"
     echo -e "   Requesting sudo (you may be prompted)..."
     sudo -v
-    sudo -E "$SCRIPT_DIR/start_bluetooth_provisioning.sh" > /dev/null 2>&1
+    sudo -E bash "$SCRIPT_DIR/start_bluetooth_provisioning.sh"
 else
-    "$SCRIPT_DIR/start_bluetooth_provisioning.sh" > /dev/null 2>&1
+    bash "$SCRIPT_DIR/start_bluetooth_provisioning.sh"
 fi
 
 # Try to discover the process PID for reporting
