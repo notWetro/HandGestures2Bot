@@ -47,14 +47,17 @@ class HandLandmarkerHelper(
     // For this example this needs to be a var so it can be reset on changes.
     // If the Hand Landmarker will not change, a lazy val would be preferable.
     private var handLandmarker: HandLandmarker? = null
+    private val lock = Any()
 
     init {
         setupHandLandmarker()
     }
 
     fun clearHandLandmarker() {
-        handLandmarker?.close()
-        handLandmarker = null
+        synchronized(lock) {
+            handLandmarker?.close()
+            handLandmarker = null
+        }
     }
 
     // Return running status of HandLandmarkerHelper
@@ -118,8 +121,10 @@ class HandLandmarkerHelper(
             }
 
             val options = optionsBuilder.build()
-            handLandmarker =
-                HandLandmarker.createFromOptions(context, options)
+            synchronized(lock) {
+                handLandmarker =
+                    HandLandmarker.createFromOptions(context, options)
+            }
         } catch (e: IllegalStateException) {
             handLandmarkerHelperListener?.onError(
                 "Hand Landmarker failed to initialize. See error logs for " +
@@ -163,7 +168,7 @@ class HandLandmarkerHelper(
                 Bitmap.Config.ARGB_8888
             )
         imageProxy.use { bitmapBuffer.copyPixelsFromBuffer(imageProxy.planes[0].buffer) }
-        imageProxy.close()
+        // imageProxy.close() is removed as it's redundant.
 
         val matrix = Matrix().apply {
             // Rotate the frame received from the camera to be in the same direction as it'll be shown
@@ -193,7 +198,9 @@ class HandLandmarkerHelper(
     // Run hand hand landmark using MediaPipe Hand Landmarker API
     @VisibleForTesting
     fun detectAsync(mpImage: MPImage, frameTime: Long) {
-        handLandmarker?.detectAsync(mpImage, frameTime)
+        synchronized(lock) {
+            handLandmarker?.detectAsync(mpImage, frameTime)
+        }
         // As we're using running mode LIVE_STREAM, the landmark result will
         // be returned in returnLivestreamResult function
     }
