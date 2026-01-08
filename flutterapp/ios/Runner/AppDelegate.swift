@@ -3,6 +3,8 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  
+  private var bluetoothService: BluetoothProvisioningService?
 
   override func application(
     _ application: UIApplication,
@@ -68,28 +70,43 @@ import UIKit
     }
 
     // Bluetooth provisioning channel
-    let bluetoothService = BluetoothProvisioningService()
+    self.bluetoothService = BluetoothProvisioningService()
     let bluetoothChannel = FlutterMethodChannel(
         name: "bluetooth_channel",
         binaryMessenger: controller.binaryMessenger
     )
 
+    // Setup callbacks for IP and status updates
+    self.bluetoothService?.setIpCallback { ipAddress in
+        DispatchQueue.main.async {
+            bluetoothChannel.invokeMethod("onIpAddressReceived", arguments: ipAddress)
+            print("🔵 BLE: Notifying Flutter about IP: \(ipAddress)")
+        }
+    }
+    
+    self.bluetoothService?.setStatusCallback { status in
+        DispatchQueue.main.async {
+            bluetoothChannel.invokeMethod("onStatusUpdate", arguments: ["status": status])
+            print("🔵 BLE: Notifying Flutter about status: \(status)")
+        }
+    }
+
     bluetoothChannel.setMethodCallHandler { call, result in
         switch call.method {
 
         case "getConnectedDevices":
-            bluetoothService.getConnectedDevices { devices in
+            self.bluetoothService?.getConnectedDevices { devices in
                 result(devices)
             }
         
         case "startScanning":
-            bluetoothService.startScanning { devices in
+            self.bluetoothService?.startScanning { devices in
                 // Send results back to Flutter via EventChannel or callback
                 result(devices)
             }
             
         case "stopScanning":
-            bluetoothService.stopScanning()
+            self.bluetoothService?.stopScanning()
             result(nil)
 
         case "connectToDevice":
@@ -99,7 +116,7 @@ import UIKit
                         details: nil))
                 return
             }
-            bluetoothService.connectToDevice(deviceId: deviceId) { success, error in
+            self.bluetoothService?.connectToDevice(deviceId: deviceId) { success, error in
                 if success {
                     result(true)
                 } else {
@@ -118,7 +135,7 @@ import UIKit
                         details: nil))
                 return
             }
-            bluetoothService.sendWiFiCredentials(ssid: ssid, password: password) { success, error in
+            self.bluetoothService?.sendWiFiCredentials(ssid: ssid, password: password) { success, error in
                 if success {
                     result(true)
                 } else {
@@ -129,7 +146,7 @@ import UIKit
             }
 
         case "disconnect":
-            bluetoothService.disconnect()
+            self.bluetoothService?.disconnect()
             result(nil)
 
         default:

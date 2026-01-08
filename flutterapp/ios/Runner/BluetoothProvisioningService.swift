@@ -30,6 +30,16 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         centralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
+    // MARK: - Callback Setup
+    
+    func setIpCallback(_ callback: @escaping (String) -> Void) {
+        ipCallback = callback
+    }
+    
+    func setStatusCallback(_ callback: @escaping (String) -> Void) {
+        statusCallback = callback
+    }
+    
     // MARK: - Public API
     
     var scanCallback: (([[String: String]]) -> Void)?
@@ -224,10 +234,15 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             if let jsonData = jsonString.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                 if let ip = json["ip"] as? String {
+                    print("🔵 BLE Native: Extracted IP: \(ip)")
                     ipCallback?(ip)
                 }
                 if let status = json["status"] as? String {
+                    print("🔵 BLE Native: Extracted status: \(status)")
                     statusCallback?(status)
+                }
+                if let errorMsg = json["error"] as? String {
+                    print("❌ BLE Native: Error from robot: \(errorMsg)")
                 }
             }
         }

@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutterapp/services/gesture_service.dart';
 import 'package:flutterapp/services/robot_service.dart';
 import 'package:flutterapp/services/dance_service.dart';
+import 'package:flutterapp/services/obstacle_sensor_service.dart';
 import 'package:flutterapp/models/dance_move.dart';
+import 'package:flutterapp/models/obstacle_status.dart';
 
 class CameraView extends StatefulWidget {
   const CameraView({super.key});
@@ -22,14 +24,17 @@ class _CameraViewState extends State<CameraView> {
   final GestureService _gestureService = GestureService();
   final RobotService _robotService = RobotService();
   final DanceService _danceService = DanceService();
+  final ObstacleSensorService _obstacleSensorService = ObstacleSensorService();
 
   // State
   StreamSubscription? _gestureSubscription;
+  StreamSubscription? _obstacleSubscription;
   String detectedGesture = "Waiting...";
   String robotCommand = "stop";
   List<String> commandHistory = [];
   final ScrollController _scrollController = ScrollController();
   bool _isDancePlaying = false;
+  ObstacleStatus? _currentObstacleStatus;
 
   @override
   void initState() {
@@ -42,6 +47,23 @@ class _CameraViewState extends State<CameraView> {
   }
 
   Future<void> _initializeServices() async {
+    // Connect to obstacle sensor
+    try {
+      final robotIp = await _robotService.getRobotIp();
+      if (robotIp != null && robotIp.isNotEmpty) {
+        _obstacleSensorService.connect(robotIp);
+        _obstacleSubscription = _obstacleSensorService.obstacleStatusStream.listen((status) {
+          if (mounted) {
+            setState(() {
+              _currentObstacleStatus = status;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to connect to obstacle sensor: $e");
+    }
+
     // Start listening to the gesture service's stream FIRST
     _gestureSubscription = _gestureService.onGesture.listen((gesture) async {
       if (mounted) {
@@ -132,9 +154,11 @@ class _CameraViewState extends State<CameraView> {
     // Clean up to prevent memory leaks
     _isDancePlaying = false;
     _gestureSubscription?.cancel();
+    _obstacleSubscription?.cancel();
     _scrollController.dispose();
     _gestureService.dispose();
     _robotService.disconnect();
+    _obstacleSensorService.dispose();
     super.dispose();
   }
 
@@ -176,24 +200,37 @@ class _CameraViewState extends State<CameraView> {
           ),
           const SizedBox(height: 20),
           Center(
-            child: Container(
-              height: 350,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue, width: 2),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+            child: Stack(
+              children: [
+                Container(
+                  height: 350,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.blue, width: 2),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: _gestureService.buildCameraView(),
-              ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: _gestureService.buildCameraView(),
+                  ),
+                ),
+                if (_currentObstacleStatus?.blocked == true)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: _buildObstacleWarnings(),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
@@ -308,6 +345,93 @@ class _CameraViewState extends State<CameraView> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildObstacleWarnings() {
+    if (_currentObstacleStatus == null) return const SizedBox.shrink();
+
+    return Stack(
+      children: [
+        // Links
+        if (_currentObstacleStatus!.isSectorBlocked('left'))
+          Positioned(
+            left: 16,
+            top: 16,
+            child: _buildWarningBadge(
+              'OBJEKT LINKS',
+              _currentObstacleStatus!.getDistance('left'),
+            ),
+          ),
+        // Mitte
+        if (_currentObstacleStatus!.isSectorBlocked('center'))
+          Positioned(
+            top: 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: _buildWarningBadge(
+                'OBJEKT VORNE',
+                _currentObstacleStatus!.getDistance('center'),
+              ),
+            ),
+          ),
+        // Rechts
+        if (_currentObstacleStatus!.isSectorBlocked('right'))
+          Positioned(
+            right: 16,
+            top: 16,
+            child: _buildWarningBadge(
+              'OBJEKT RECHTS',
+              _currentObstacleStatus!.getDistance('right'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildWarningBadge(String text, double? distance) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.5),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning, color: Colors.white, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          if (distance != null)
+            Text(
+              '${distance.toInt()} cm',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
         ],
       ),
     );

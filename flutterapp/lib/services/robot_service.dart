@@ -87,4 +87,9 @@ class RobotService {
   }
   
   String get currentIpAddress => _ipAddress;
+  
+  Future<String?> getRobotIp() async {
+    await initialize();
+    return _ipAddress;
+  }
 }

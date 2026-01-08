@@ -30,15 +30,46 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         centralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
+    // MARK: - Callback Setup
+    
+    func setIpCallback(_ callback: @escaping (String) -> Void) {
+        ipCallback = callback
+    }
+    
+    func setStatusCallback(_ callback: @escaping (String) -> Void) {
+        statusCallback = callback
+    }
+    
     // MARK: - Public API
     
-    func getConnectedDevices(callback: @escaping ([String: String]) -> Void) {
+    var scanCallback: (([[String: String]]) -> Void)?
+    
+    func startScanning(callback: @escaping ([[String: String]]) -> Void) {
+        print("🔵 BLE Native: Starting scan...")
+        scanCallback = callback
+        
+        // Scan for devices advertising our service
+        centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
+        
+        // Stop scan after 10 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            self?.stopScanning()
+        }
+    }
+    
+    func stopScanning() {
+        centralManager.stopScan()
+        print("🔵 BLE Native: Scan stopped")
+    }
+    
+    func getConnectedDevices(callback: @escaping ([[String: String]]) -> Void) {
         print("🔵 BLE Native: Getting connected devices...")
+        
+        var devices: [[String: String]] = []
         
         // Get already connected peripherals
         let connectedPeripherals = centralManager.retrieveConnectedPeripherals(withServices: [serviceUUID])
         
-        var devices: [[String: String]] = []
         for peripheral in connectedPeripherals {
             devices.append([
                 "name": peripheral.name ?? "Unknown",
@@ -47,7 +78,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             print("🔵 BLE Native: Found connected device: \(peripheral.name ?? "Unknown")")
         }
         
-        callback(["devices": devices.description])
+        callback(devices)
     }
     
     func connectToDevice(deviceId: String, callback: @escaping (Bool, String?) -> Void) {
@@ -106,6 +137,8 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     // MARK: - CBCentralManagerDelegate
     
+    private var discoveredPeripherals: [CBPeripheral] = []
+    
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
@@ -118,6 +151,26 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             print("⚠️ BLE Native: Bluetooth is unsupported")
         default:
             print("⚠️ BLE Native: Bluetooth state: \(central.state.rawValue)")
+        }
+    }
+    
+    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        print("🔵 BLE Native: Discovered \(peripheral.name ?? "Unknown") - \(peripheral.identifier)")
+        
+        if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
+            discoveredPeripherals.append(peripheral)
+            
+            // Update callback with current list
+            if let callback = scanCallback {
+                var devices: [[String: String]] = []
+                for p in discoveredPeripherals {
+                    devices.append([
+                        "name": p.name ?? "Unknown",
+                        "id": p.identifier.uuidString
+                    ])
+                }
+                callback(devices)
+            }
         }
     }
     
@@ -181,10 +234,15 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             if let jsonData = jsonString.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                 if let ip = json["ip"] as? String {
+                    print("🔵 BLE Native: Extracted IP: \(ip)")
                     ipCallback?(ip)
                 }
                 if let status = json["status"] as? String {
+                    print("🔵 BLE Native: Extracted status: \(status)")
                     statusCallback?(status)
+                }
+                if let errorMsg = json["error"] as? String {
+                    print("❌ BLE Native: Error from robot: \(errorMsg)")
                 }
             }
         }
