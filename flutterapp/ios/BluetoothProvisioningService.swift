@@ -42,11 +42,29 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     // MARK: - Public API
     
-    var scanCallback: (([[String: String]]) -> Void)?
+    private var scanCallback: (([[String: String]]) -> Void)?
+    private var isScanning: Bool = false
     
     func startScanning(callback: @escaping ([[String: String]]) -> Void) {
         print("🔵 BLE Native: Starting scan...")
+        if isScanning {
+            // Avoid overwriting the pending callback; just return what we have so far.
+            var devices: [[String: String]] = []
+            for p in discoveredPeripherals {
+                devices.append([
+                    "name": p.name ?? "Unknown",
+                    "id": p.identifier.uuidString
+                ])
+            }
+            callback(devices)
+            return
+        }
+        // IMPORTANT: MethodChannel results must be returned exactly once.
+        // We therefore collect peripherals during the scan window and return
+        // the full list when scanning stops.
+        discoveredPeripherals.removeAll()
         scanCallback = callback
+        isScanning = true
         
         // Scan for devices advertising our service
         centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
@@ -60,6 +78,22 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     func stopScanning() {
         centralManager.stopScan()
         print("🔵 BLE Native: Scan stopped")
+
+        guard isScanning else { return }
+        isScanning = false
+
+        // Return discovered devices once
+        if let callback = scanCallback {
+            var devices: [[String: String]] = []
+            for p in discoveredPeripherals {
+                devices.append([
+                    "name": p.name ?? "Unknown",
+                    "id": p.identifier.uuidString
+                ])
+            }
+            scanCallback = nil
+            callback(devices)
+        }
     }
     
     func getConnectedDevices(callback: @escaping ([[String: String]]) -> Void) {
@@ -159,18 +193,6 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         
         if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
             discoveredPeripherals.append(peripheral)
-            
-            // Update callback with current list
-            if let callback = scanCallback {
-                var devices: [[String: String]] = []
-                for p in discoveredPeripherals {
-                    devices.append([
-                        "name": p.name ?? "Unknown",
-                        "id": p.identifier.uuidString
-                    ])
-                }
-                callback(devices)
-            }
         }
     }
     
