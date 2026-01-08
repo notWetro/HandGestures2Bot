@@ -118,26 +118,36 @@ echo -e "${BLUE}[6/8]${NC} Starting Bluetooth provisioning..."
 
 # Bluetooth needs root privileges. If we are not root, prompt once and start via sudo.
 BT_LOG="$LOG_DIR/bluetooth_provisioning.log"
+BT_PID_FILE="$LOG_DIR/bluetooth_provisioning.pid"
 
 if [ "$EUID" -ne 0 ]; then
     echo -e "${YELLOW}⚠${NC} Bluetooth provisioning requires root privileges"
     echo -e "   Requesting sudo (you may be prompted)..."
     sudo -v
     sudo -E bash "$SCRIPT_DIR/start_bluetooth_provisioning.sh"
+    BT_START_STATUS=$?
 else
     bash "$SCRIPT_DIR/start_bluetooth_provisioning.sh"
+    BT_START_STATUS=$?
 fi
 
-# Try to discover the process PID for reporting
-sleep 2
-BT_PID=$(pgrep -f "bluetooth_provisioning.py" | head -n 1)
-if [ -n "$BT_PID" ] && kill -0 "$BT_PID" 2>/dev/null; then
+# Read PID from pidfile (preferred)
+BT_PID=""
+if [ -f "$BT_PID_FILE" ]; then
+    BT_PID=$(cat "$BT_PID_FILE" 2>/dev/null | tr -d '[:space:]')
+fi
+
+if [ "$BT_START_STATUS" -eq 0 ] && [ -n "$BT_PID" ] && kill -0 "$BT_PID" 2>/dev/null; then
     echo "$BT_PID bluetooth_provisioning" >> "$PID_FILE"
     echo -e "${GREEN}✓${NC} Bluetooth provisioning started (PID: $BT_PID)"
     echo -e "   Log: $BT_LOG"
 else
     echo -e "${RED}✗ ERROR: Bluetooth provisioning failed to start${NC}"
     echo -e "   Check log: $BT_LOG"
+    if [ -f "$BT_LOG" ]; then
+        echo -e "   Last log lines:"
+        tail -n 20 "$BT_LOG" 2>/dev/null | sed 's/^/   | /'
+    fi
 fi
 
 # =============================================================================

@@ -18,6 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="/tmp/turtlebot_logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/bluetooth_provisioning.log"
+PID_FILE="$LOG_DIR/bluetooth_provisioning.pid"
 
 # Make logs readable for the normal 'turtlebot' user even when started via sudo.
 chmod 755 "$LOG_DIR" 2>/dev/null || true
@@ -28,6 +29,36 @@ chmod 644 "$LOG_FILE" 2>/dev/null || true
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 CMD=(python3 "$SCRIPT_DIR/provisioning/bluetooth_wifi/bluetooth_provisioning.py")
+
+ensure_bluetooth_ready() {
+  echo "Ensuring bluetooth service/controller is ready..."
+
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl start bluetooth >/dev/null 2>&1 || true
+  fi
+
+  if command -v bluetoothctl >/dev/null 2>&1; then
+    # These can fail harmlessly if controller isn't ready yet.
+    bluetoothctl power on >/dev/null 2>&1 || true
+    bluetoothctl discoverable on >/dev/null 2>&1 || true
+    bluetoothctl pairable on >/dev/null 2>&1 || true
+
+    # Wait a bit for the controller to show up
+    for _ in $(seq 1 10); do
+      if bluetoothctl list 2>/dev/null | grep -qi "controller"; then
+        echo "OK: Bluetooth controller detected"
+        return 0
+      fi
+      sleep 1
+    done
+
+    echo "WARN: No Bluetooth controller detected yet (continuing anyway)"
+    return 0
+  fi
+
+  echo "WARN: bluetoothctl not available; cannot power on controller"
+  return 0
+}
 
 echo "Checking Bluetooth provisioning dependencies..."
 if ! command -v python3 >/dev/null 2>&1; then
@@ -59,6 +90,8 @@ except Exception as e:
 print("OK: Python deps present (bluezero, netifaces)")
 PY
 
+ensure_bluetooth_ready
+
 if [ "$EUID" -ne 0 ]; then
   echo "Bluetooth provisioning needs sudo. You may be prompted for your password..."
   sudo -v
@@ -66,9 +99,20 @@ if [ "$EUID" -ne 0 ]; then
   sudo -E "${CMD[@]}" > "$LOG_FILE" 2>&1 &
 else
   echo "Starting Bluetooth provisioning (already root) ..."
-  "${CMD[@]}" > "$LOG_FILE" 2>&1 &
+  # Detach from this shell so the server keeps running after start_robot.sh returns.
+  nohup "${CMD[@]}" </dev/null >> "$LOG_FILE" 2>&1 &
 fi
 
 PID=$!
+echo "$PID" > "$PID_FILE" 2>/dev/null || true
+chmod 644 "$PID_FILE" 2>/dev/null || true
 echo "Bluetooth provisioning started (PID: $PID)"
 echo "Log: $LOG_FILE"
+
+# Quick health check
+sleep 1
+if ! kill -0 "$PID" 2>/dev/null; then
+  echo "ERROR: Provisioning process exited immediately. Last log lines:"
+  tail -n 50 "$LOG_FILE" || true
+  exit 10
+fi
