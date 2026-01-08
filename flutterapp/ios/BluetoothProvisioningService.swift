@@ -26,6 +26,14 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     private var ipCallback: ((String) -> Void)?
 
     private var connectCallback: ((Bool, String?) -> Void)?
+
+    private func completeConnect(_ success: Bool, _ message: String?) {
+        guard let cb = connectCallback else { return }
+        connectCallback = nil
+        DispatchQueue.main.async {
+            cb(success, message)
+        }
+    }
     
     override init() {
         super.init()
@@ -122,6 +130,11 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
 
         // Keep only the latest attempt; ensure we complete it exactly once.
         connectCallback = callback
+
+        guard centralManager.state == .poweredOn else {
+            completeConnect(false, "Bluetooth is not powered on")
+            return
+        }
         
         guard let uuid = UUID(uuidString: deviceId) else {
             callback(false, "Invalid device ID")
@@ -208,10 +221,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         print("❌ BLE Native: Failed to connect: \(error?.localizedDescription ?? "unknown")")
-        if let cb = connectCallback {
-            connectCallback = nil
-            cb(false, error?.localizedDescription ?? "Failed to connect")
-        }
+        completeConnect(false, error?.localizedDescription ?? "Failed to connect")
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
@@ -224,32 +234,39 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error = error {
             print("❌ BLE Native: Service discovery error: \(error.localizedDescription)")
-            if let cb = connectCallback {
-                connectCallback = nil
-                cb(false, error.localizedDescription)
-            }
+            completeConnect(false, error.localizedDescription)
             return
         }
-        guard let services = peripheral.services else { return }
+        guard let services = peripheral.services else {
+            completeConnect(false, "No services discovered")
+            return
+        }
+
+        var foundProvisioningService = false
         
         for service in services {
             if service.uuid == serviceUUID {
+                foundProvisioningService = true
                 print("✅ BLE Native: Found provisioning service")
                 peripheral.discoverCharacteristics([ssidCharUUID, passwordCharUUID, statusCharUUID], for: service)
             }
+        }
+
+        if !foundProvisioningService {
+            completeConnect(false, "Provisioning service not found")
         }
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         if let error = error {
             print("❌ BLE Native: Characteristic discovery error: \(error.localizedDescription)")
-            if let cb = connectCallback {
-                connectCallback = nil
-                cb(false, error.localizedDescription)
-            }
+            completeConnect(false, error.localizedDescription)
             return
         }
-        guard let characteristics = service.characteristics else { return }
+        guard let characteristics = service.characteristics else {
+            completeConnect(false, "No characteristics discovered")
+            return
+        }
         
         for characteristic in characteristics {
             switch characteristic.uuid {
@@ -270,10 +287,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         }
 
         if ssidCharacteristic != nil, passwordCharacteristic != nil, statusCharacteristic != nil {
-            if let cb = connectCallback {
-                connectCallback = nil
-                cb(true, nil)
-            }
+            completeConnect(true, nil)
         }
     }
     
