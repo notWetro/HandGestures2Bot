@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class NativeBluetoothService {
   static final NativeBluetoothService _instance = NativeBluetoothService._internal();
   factory NativeBluetoothService() => _instance;
-  NativeBluetoothService._internal();
+  NativeBluetoothService._internal() {
+    _setupMethodCallHandler();
+  }
 
   static const MethodChannel _channel = MethodChannel('bluetooth_channel');
   
@@ -15,6 +17,27 @@ class NativeBluetoothService {
   
   Stream<String> get onIpAddressReceived => _ipAddressController.stream;
   Stream<Map<String, dynamic>> get onStatusUpdate => _statusController.stream;
+
+  void _setupMethodCallHandler() {
+    _channel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'onIpAddressReceived':
+          final ipAddress = call.arguments as String;
+          debugPrint('🔵 BLE: Received IP from native: $ipAddress');
+          _ipAddressController.add(ipAddress);
+          break;
+        
+        case 'onStatusUpdate':
+          final status = Map<String, dynamic>.from(call.arguments);
+          debugPrint('🔵 BLE: Received status from native: $status');
+          _statusController.add(status);
+          break;
+        
+        default:
+          debugPrint('⚠️ BLE: Unknown method call: ${call.method}');
+      }
+    });
+  }
 
   // Start BLE scan for devices
   Future<List<Map<String, String>>> startScanning() async {
