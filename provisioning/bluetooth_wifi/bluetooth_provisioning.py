@@ -8,6 +8,7 @@ import json
 import logging
 import subprocess
 import sys
+import threading
 from typing import Optional, Tuple
 
 import netifaces
@@ -31,6 +32,9 @@ password_value: Optional[str] = None
 status_value: str = "idle"
 ip_value: Optional[str] = None
 last_error: Optional[str] = None
+
+_provision_lock = threading.Lock()
+_provision_thread: Optional[threading.Thread] = None
 
 
 def _run(cmd, timeout: int = 10) -> subprocess.CompletedProcess:
@@ -250,38 +254,58 @@ def get_status_json() -> str:
 def try_provision():
     """Attempt Wi-Fi provisioning if both SSID and password are set."""
     global ssid_value, password_value, status_value, ip_value, last_error
-    
-    if ssid_value and password_value:
-        status_value = "connecting"
-        last_error = None
-        
-        # Capture values and reset immediately
-        ssid = ssid_value
-        password = password_value
-        ssid_value = None
-        password_value = None
-        
-        logging.info("Connecting to Wi-Fi: %s", ssid)
-        success, reason = connect_wifi(ssid, password)
-        
-        if success:
-            import time
-            time.sleep(2)  # Wait for IP assignment
-            ip = get_wlan_ip()
-            if ip:
-                status_value = "connected"
-                ip_value = ip
-                logging.info("Provisioning complete: %s -> %s", ssid, ip)
+
+    if not (ssid_value and password_value):
+        return
+
+    # Capture values and reset immediately so repeated writes don't trigger more work.
+    ssid = ssid_value
+    password = password_value
+    ssid_value = None
+    password_value = None
+
+    def _worker(target_ssid: str, target_password: str) -> None:
+        global status_value, ip_value, last_error
+        try:
+            logging.info("Connecting to Wi-Fi: %s", target_ssid)
+            success, reason = connect_wifi(target_ssid, target_password)
+            if success:
+                import time
+                time.sleep(2)  # Wait for IP assignment
+                ip = get_wlan_ip()
+                if ip:
+                    status_value = "connected"
+                    ip_value = ip
+                    last_error = None
+                    logging.info("Provisioning complete: %s -> %s", target_ssid, ip)
+                else:
+                    status_value = "failed"
+                    last_error = "Connected but no IPv4 address"
+                    logging.warning("Connected but no IPv4 address")
             else:
                 status_value = "failed"
-                last_error = "Connected but no IPv4 address"
-                logging.warning("Connected but no IPv4 address")
-        else:
+                last_error = reason
+                ip_value = get_wlan_ip() or ip_value
+                logging.warning("Wi-Fi connect failed: %s", reason)
+        except Exception as exc:
             status_value = "failed"
-            last_error = reason
-            # If we restored/kept an existing Wi-Fi connection, keep reporting IP.
-            ip_value = get_wlan_ip() or ip_value
-            logging.warning("Wi-Fi connect failed: %s", reason)
+            last_error = str(exc)
+            logging.exception("Provisioning worker failed: %s", exc)
+        finally:
+            # Allow a future provisioning attempt
+            with _provision_lock:
+                global _provision_thread
+                _provision_thread = None
+
+    with _provision_lock:
+        global _provision_thread
+        if _provision_thread is not None and _provision_thread.is_alive():
+            logging.info("Provisioning already in progress; ignoring new request")
+            return
+        status_value = "connecting"
+        last_error = None
+        _provision_thread = threading.Thread(target=_worker, args=(ssid, password), daemon=True)
+        _provision_thread.start()
 
 
 # Callbacks for bluezero
@@ -331,6 +355,15 @@ def main():
     logging.info("Starting BLE Provisioning Server...")
     logging.info("Device name: %s", DEVICE_NAME)
     logging.info("Service UUID: %s", SERVICE_UUID)
+
+    # bluezero peripheral needs a GLib mainloop; fail fast with a clear message
+    try:
+        from gi.repository import GLib  # type: ignore
+    except Exception as exc:
+        logging.error("Missing GLib bindings for Python (python3-gi).")
+        logging.error("Install on Ubuntu/Debian: sudo apt install -y python3-gi gir1.2-glib-2.0")
+        logging.error("Details: %s", exc)
+        sys.exit(3)
     
     # Get the first available adapter
     adapters = list(adapter.Adapter.available())
@@ -401,7 +434,6 @@ def main():
     logging.info("Waiting for connections...")
     
     try:
-        from gi.repository import GLib
         mainloop = GLib.MainLoop()
         mainloop.run()
     except KeyboardInterrupt:

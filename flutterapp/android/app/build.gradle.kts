@@ -5,6 +5,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+configurations.all {
+    exclude(group = "com.google.mediapipe", module = "tasks-vision-image-generator")
+}
+
 android {
     namespace = "com.example.flutterapp"
     compileSdk = flutter.compileSdkVersion

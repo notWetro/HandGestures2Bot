@@ -26,12 +26,62 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     private var ipCallback: ((String) -> Void)?
 
     private var connectCallback: ((Bool, String?) -> Void)?
+    private var lastConnectedDeviceUUID: UUID?
+
+    private struct PendingCredentials {
+        let ssid: String
+        let password: String
+        let callback: (Bool, String?) -> Void
+    }
+
+    private var pendingCredentials: PendingCredentials?
 
     private func completeConnect(_ success: Bool, _ message: String?) {
         guard let cb = connectCallback else { return }
         connectCallback = nil
         DispatchQueue.main.async {
             cb(success, message)
+        }
+    }
+
+    private func attemptReconnectIfPossible() {
+        guard connectedPeripheral == nil else { return }
+        guard let uuid = lastConnectedDeviceUUID else { return }
+
+        let peripherals = centralManager.retrievePeripherals(withIdentifiers: [uuid])
+        guard let peripheral = peripherals.first else {
+            if let pending = pendingCredentials {
+                pendingCredentials = nil
+                DispatchQueue.main.async { pending.callback(false, "Device not found") }
+            }
+            return
+        }
+
+        connectedPeripheral = peripheral
+        peripheral.delegate = self
+        centralManager.connect(peripheral, options: nil)
+    }
+
+    private func writeCredentialsIfReady(ssid: String, password: String, callback: @escaping (Bool, String?) -> Void) {
+        guard let peripheral = connectedPeripheral,
+              let ssidChar = ssidCharacteristic,
+              let passwordChar = passwordCharacteristic else {
+            callback(false, "Not connected to device")
+            return
+        }
+
+        print("🔵 BLE Native: Sending WiFi credentials...")
+        print("🔵 BLE Native: SSID: \(ssid)")
+
+        if let ssidData = ssid.data(using: .utf8) {
+            peripheral.writeValue(ssidData, for: ssidChar, type: .withResponse)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let passwordData = password.data(using: .utf8) {
+                peripheral.writeValue(passwordData, for: passwordChar, type: .withResponse)
+            }
+            callback(true, nil)
         }
     }
     
@@ -137,13 +187,17 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         }
         
         guard let uuid = UUID(uuidString: deviceId) else {
-            callback(false, "Invalid device ID")
+            completeConnect(false, "Invalid device ID")
             return
         }
+        lastConnectedDeviceUUID = uuid
+
+        centralManager.stopScan()
+        isScanning = false
         
         let peripherals = centralManager.retrievePeripherals(withIdentifiers: [uuid])
         guard let peripheral = peripherals.first else {
-            callback(false, "Device not found")
+            completeConnect(false, "Device not found")
             return
         }
         
@@ -155,29 +209,13 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     }
     
     func sendWiFiCredentials(ssid: String, password: String, callback: @escaping (Bool, String?) -> Void) {
-        guard let peripheral = connectedPeripheral,
-              let ssidChar = ssidCharacteristic,
-              let passwordChar = passwordCharacteristic else {
-            callback(false, "Not connected to device")
+        if connectedPeripheral == nil || ssidCharacteristic == nil || passwordCharacteristic == nil {
+            pendingCredentials = PendingCredentials(ssid: ssid, password: password, callback: callback)
+            attemptReconnectIfPossible()
             return
         }
-        
-        print("🔵 BLE Native: Sending WiFi credentials...")
-        print("🔵 BLE Native: SSID: \(ssid)")
-        
-        // Write SSID
-        if let ssidData = ssid.data(using: .utf8) {
-            peripheral.writeValue(ssidData, for: ssidChar, type: .withResponse)
-        }
-        
-        // Small delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            // Write password
-            if let passwordData = password.data(using: .utf8) {
-                peripheral.writeValue(passwordData, for: passwordChar, type: .withResponse)
-            }
-            callback(true, nil)
-        }
+
+        writeCredentialsIfReady(ssid: ssid, password: password, callback: callback)
     }
     
     func disconnect() {
@@ -216,6 +254,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         print("✅ BLE Native: Connected to \(peripheral.name ?? "device")")
+        connectedPeripheral = peripheral
         peripheral.discoverServices([serviceUUID])
     }
     
@@ -225,8 +264,13 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        print("🔵 BLE Native: Disconnected from device")
+        print("🔵 BLE Native: Disconnected from device\(error != nil ? ": \(error!.localizedDescription)" : "")")
         connectedPeripheral = nil
+
+        if let pending = pendingCredentials {
+            pendingCredentials = nil
+            DispatchQueue.main.async { pending.callback(false, "Disconnected from device") }
+        }
     }
     
     // MARK: - CBPeripheralDelegate
@@ -288,6 +332,11 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
 
         if ssidCharacteristic != nil, passwordCharacteristic != nil, statusCharacteristic != nil {
             completeConnect(true, nil)
+
+            if let pending = pendingCredentials {
+                pendingCredentials = nil
+                writeCredentialsIfReady(ssid: pending.ssid, password: pending.password, callback: pending.callback)
+            }
         }
     }
     

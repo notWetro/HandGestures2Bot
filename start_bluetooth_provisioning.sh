@@ -40,8 +40,12 @@ ensure_bluetooth_ready() {
   if command -v bluetoothctl >/dev/null 2>&1; then
     # These can fail harmlessly if controller isn't ready yet.
     bluetoothctl power on >/dev/null 2>&1 || true
+    bluetoothctl discoverable-timeout 0 >/dev/null 2>&1 || true
+    bluetoothctl pairable-timeout 0 >/dev/null 2>&1 || true
     bluetoothctl discoverable on >/dev/null 2>&1 || true
     bluetoothctl pairable on >/dev/null 2>&1 || true
+    bluetoothctl agent NoInputNoOutput >/dev/null 2>&1 || true
+    bluetoothctl default-agent >/dev/null 2>&1 || true
 
     # Wait a bit for the controller to show up
     for _ in $(seq 1 10); do
@@ -93,10 +97,19 @@ PY
 ensure_bluetooth_ready
 
 if [ "$EUID" -ne 0 ]; then
-  echo "Bluetooth provisioning needs sudo. You may be prompted for your password..."
-  sudo -v
-  echo "Starting Bluetooth provisioning (root) ..."
-  sudo -E "${CMD[@]}" > "$LOG_FILE" 2>&1 &
+  echo "Bluetooth provisioning needs root privileges."
+  if sudo -n true 2>/dev/null; then
+    echo "Re-running as root via sudo -n (no password prompt) ..."
+    exec sudo -n -E bash "$0"
+  fi
+  echo "ERROR: sudo would prompt for a password (not allowed in this script)."
+  echo "Fix options (choose one):"
+  echo "  1) Configure NOPASSWD for this script in /etc/sudoers.d (recommended)"
+  echo "     Example (edit with visudo):"
+  echo "       <YOUR_USER> ALL=(root) NOPASSWD: /bin/bash $SCRIPT_DIR/start_bluetooth_provisioning.sh"
+  echo "  2) Run this script as root"
+  echo "  3) Run provisioning as a systemd service started at boot"
+  exit 20
 else
   echo "Starting Bluetooth provisioning (already root) ..."
   # Detach from this shell so the server keeps running after start_robot.sh returns.
@@ -110,7 +123,7 @@ echo "Bluetooth provisioning started (PID: $PID)"
 echo "Log: $LOG_FILE"
 
 # Quick health check
-sleep 1
+sleep 2
 if ! kill -0 "$PID" 2>/dev/null; then
   echo "ERROR: Provisioning process exited immediately. Last log lines:"
   tail -n 50 "$LOG_FILE" || true
