@@ -162,8 +162,9 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             return
         }
         
-        print("🔵 BLE Native: Sending WiFi credentials...")
-        print("🔵 BLE Native: SSID: \(ssid)")
+        print("📤 App → Robot: Sending WiFi credentials...")
+        print("📤 App → Robot (SSID): '\(ssid)'")
+        print("📤 App → Robot (Password): [\(password.count) characters]")
         
         // Write SSID
         if let ssidData = ssid.data(using: .utf8) {
@@ -297,17 +298,17 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             guard let data = characteristic.value,
                   let jsonString = String(data: data, encoding: .utf8) else { return }
             
-            print("🔵 BLE Native: Received status: \(jsonString)")
+            print("📥 Robot → App (Status JSON): \(jsonString)")
             
             // Parse JSON and extract IP if available
             if let jsonData = jsonString.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                 if let ip = json["ip"] as? String {
-                    print("🔵 BLE Native: Extracted IP: \(ip)")
+                    print("✅ BLE Native: Extracted IP: \(ip)")
                     ipCallback?(ip)
                 }
                 if let status = json["status"] as? String {
-                    print("🔵 BLE Native: Extracted status: \(status)")
+                    print("✅ BLE Native: Extracted status: \(status)")
                     statusCallback?(status)
                 }
                 if let errorMsg = json["error"] as? String {

@@ -242,7 +242,9 @@ def get_status_json() -> str:
         payload["ip"] = ip_value
     if last_error:
         payload["error"] = last_error
-    return json.dumps(payload)
+    json_str = json.dumps(payload)
+    logging.info("📤 Robot → App (Status JSON): %s", json_str)
+    return json_str
 
 
 def try_provision():
@@ -295,7 +297,7 @@ def write_ssid(value, options):
     global ssid_value
     text = bytes(value).decode(ENCODING).strip()
     ssid_value = text
-    logging.info("SSID received: %s", ssid_value)
+    logging.info("📥 App → Robot (SSID): '%s'", ssid_value)
     try_provision()
 
 
@@ -304,7 +306,7 @@ def write_password(value, options):
     global password_value
     text = bytes(value).decode(ENCODING).strip()
     password_value = text
-    logging.info("Password received (length=%d)", len(password_value))
+    logging.info("📥 App → Robot (Password): [%d characters]", len(password_value))
     try_provision()
 
 
@@ -313,10 +315,11 @@ def write_ack(value, options):
     text = bytes(value).decode(ENCODING).strip()
     try:
         payload = json.loads(text)
+        logging.info("📥 App → Robot (ACK JSON): %s", text)
         if payload.get("status") == "connected" or payload.get("connected"):
             logging.info("Client ACK: connected")
     except:
-        logging.info("Client ACK: %s", text)
+        logging.info("📥 App → Robot (ACK): %s", text)
 
 
 def main():
