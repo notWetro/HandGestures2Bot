@@ -153,7 +153,32 @@ source /opt/ros/humble/setup.bash
 source install/setup.bash
 export TURTLEBOT3_MODEL=burger
 export ROS_DOMAIN_ID=0
-ros2 run hand_gestures_bot safety_scanner > "$LOG_DIR/safety_scanner.log" 2>&1 &
+
+# Allow overriding the scan topic for real robots where it may be namespaced.
+# Examples:
+#   SCAN_TOPIC=/scan ./start_robot.sh
+#   SCAN_TOPIC=/tb3/scan ./start_robot.sh
+SCAN_TOPIC_VALUE="${SCAN_TOPIC:-}"
+if [ -z "$SCAN_TOPIC_VALUE" ]; then
+    # Auto-detect the first topic ending in /scan if possible.
+    SCAN_TOPIC_VALUE=$(ros2 topic list 2>/dev/null | grep -E '/scan$' | head -n 1)
+fi
+if [ -z "$SCAN_TOPIC_VALUE" ]; then
+    SCAN_TOPIC_VALUE="/scan"
+fi
+
+# If LiDAR is broken/missing, set DISABLE_LIDAR_FAILSAFE=1 to allow movement anyway.
+# WARNING: Robot will NOT stop for obstacles if this is set!
+FAIL_SAFE_VALUE="${DISABLE_LIDAR_FAILSAFE:-0}"
+if [ "$FAIL_SAFE_VALUE" = "1" ]; then
+    echo -e "   ${RED}⚠️ LiDAR fail-safe DISABLED - robot will NOT stop for obstacles!${NC}"
+    FAIL_SAFE_ARG="-p fail_safe_on_scan_timeout:=false"
+else
+    FAIL_SAFE_ARG="-p fail_safe_on_scan_timeout:=true"
+fi
+
+echo -e "   Using scan topic: ${YELLOW}${SCAN_TOPIC_VALUE}${NC}"
+ros2 run hand_gestures_bot safety_scanner --ros-args -p scan_topic:="$SCAN_TOPIC_VALUE" $FAIL_SAFE_ARG > "$LOG_DIR/safety_scanner.log" 2>&1 &
 SCANNER_PID=$!
 echo "$SCANNER_PID safety_scanner" >> "$PID_FILE"
 

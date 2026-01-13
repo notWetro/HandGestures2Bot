@@ -34,7 +34,8 @@ ensure_bluetooth_ready() {
   echo "Ensuring bluetooth service/controller is ready..."
 
   if command -v systemctl >/dev/null 2>&1; then
-    systemctl start bluetooth >/dev/null 2>&1 || true
+    # Use sudo -n to avoid password prompt (configured in sudoers)
+    sudo -n systemctl start bluetooth >/dev/null 2>&1 || systemctl start bluetooth >/dev/null 2>&1 || true
   fi
 
   if command -v bluetoothctl >/dev/null 2>&1; then
@@ -98,10 +99,9 @@ ensure_bluetooth_ready
 
 if [ "$EUID" -ne 0 ]; then
   echo "Bluetooth provisioning needs root privileges."
-  if sudo -n true 2>/dev/null; then
-    echo "Re-running as root via sudo -n (no password prompt) ..."
-    exec sudo -n -E bash "$0"
-  fi
+  echo "Re-running as root via sudo -n (no password prompt) ..."
+  # Try to re-exec as root; if it fails, show help
+  exec sudo -n /bin/bash "$0" 2>/dev/null || true
   echo "ERROR: sudo would prompt for a password (not allowed in this script)."
   echo "Fix options (choose one):"
   echo "  1) Configure NOPASSWD for this script in /etc/sudoers.d (recommended)"

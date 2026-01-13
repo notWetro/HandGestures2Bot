@@ -129,7 +129,18 @@ source /opt/ros/humble/setup.bash
 source install/setup.bash
 export TURTLEBOT3_MODEL=burger
 export ROS_DOMAIN_ID=0
-ros2 run hand_gestures_bot safety_scanner > "$LOG_DIR/safety_scanner.log" 2>&1 &
+
+# Allow overriding the scan topic (useful if sim/robot namespaces it).
+SCAN_TOPIC_VALUE="${SCAN_TOPIC:-}"
+if [ -z "$SCAN_TOPIC_VALUE" ]; then
+    SCAN_TOPIC_VALUE=$(ros2 topic list 2>/dev/null | grep -E '/scan$' | head -n 1)
+fi
+if [ -z "$SCAN_TOPIC_VALUE" ]; then
+    SCAN_TOPIC_VALUE="/scan"
+fi
+
+echo -e "   Using scan topic: ${YELLOW}${SCAN_TOPIC_VALUE}${NC}"
+ros2 run hand_gestures_bot safety_scanner --ros-args -p scan_topic:="$SCAN_TOPIC_VALUE" > "$LOG_DIR/safety_scanner.log" 2>&1 &
 SCANNER_PID=$!
 echo "$SCANNER_PID safety_scanner" >> "$PID_FILE"
 

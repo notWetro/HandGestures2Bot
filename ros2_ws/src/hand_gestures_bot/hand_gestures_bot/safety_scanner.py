@@ -98,6 +98,16 @@ class SafetyScanner(Node):
 
         # Store the latest LaserScan message
         self.latest_scan: Optional[LaserScan] = None
+        self._last_scan_time_s: Optional[float] = None
+
+        # If scan data stops (real robot LiDAR issues), fail-safe block forward.
+        # This is intentionally conservative to prevent driving blind.
+        self.declare_parameter("fail_safe_on_scan_timeout", True)
+        self.declare_parameter("scan_timeout_sec", 1.0)
+        self.declare_parameter("scan_topic", "/scan")
+        self.fail_safe_on_scan_timeout = bool(self.get_parameter("fail_safe_on_scan_timeout").value)
+        self.scan_timeout_sec = float(self.get_parameter("scan_timeout_sec").value)
+        self.scan_topic = str(self.get_parameter("scan_topic").value)
         
         # Track obstacle state
         self.obstacle_detected: bool = False
@@ -131,7 +141,7 @@ class SafetyScanner(Node):
         # -------------------------------------------------------------------------
         self.scan_subscription = self.create_subscription(
             LaserScan,
-            "/scan",
+            self.scan_topic,
             self.scan_callback,
             scan_qos,
         )
@@ -195,7 +205,7 @@ class SafetyScanner(Node):
         # Startup log
         # -------------------------------------------------------------------------
         self.get_logger().info("SafetyScanner node started.")
-        self.get_logger().info("Subscribing to: /scan, /cmd_vel_in")
+        self.get_logger().info(f"Subscribing to: {self.scan_topic}, /cmd_vel_in")
         self.get_logger().info("Publishing to: /cmd_vel, /obstacle_status")
         self.get_logger().info(f"Safety distance: {self.SAFETY_DISTANCE_M * 100:.0f} cm")
         self.get_logger().info("⚠️ Send commands to /cmd_vel_in (NOT /cmd_vel directly!)")
@@ -274,12 +284,55 @@ class SafetyScanner(Node):
     def scan_callback(self, msg: LaserScan) -> None:
         """Store the latest scan data and update obstacle state."""
         self.latest_scan = msg
+        self._last_scan_time_s = time.monotonic()
         self._update_obstacle_state()
+
+    def _scan_is_fresh(self) -> bool:
+        if self.latest_scan is None or self._last_scan_time_s is None:
+            return False
+        if self.scan_timeout_sec <= 0.0:
+            return True
+        return (time.monotonic() - self._last_scan_time_s) <= self.scan_timeout_sec
 
     def _update_obstacle_state(self) -> None:
         """Check for obstacles and update state, publish status on change."""
-        if self.latest_scan is None:
-            self.obstacle_detected = False
+        scan_ok = self._scan_is_fresh()
+
+        # If scan is missing/stale, optionally enter fail-safe mode.
+        if not scan_ok:
+            was_detected = self.obstacle_detected
+            self.obstacle_detected = bool(self.fail_safe_on_scan_timeout)
+
+            if self.obstacle_detected and not was_detected:
+                import json
+                status_msg = String()
+                status_msg.data = json.dumps({
+                    "type": "obstacle_status",
+                    "blocked": True,
+                    "sectors": ["no_scan"],
+                    "distances": {},
+                    "safety_distance_cm": self.SAFETY_DISTANCE_M * 100,
+                    "scan_ok": False,
+                    "reason": "no_scan_data",
+                })
+                self.obstacle_status_pub.publish(status_msg)
+                self.get_logger().error(
+                    f"No fresh {self.scan_topic} data. Fail-safe: blocking forward motion. "
+                    "Check LiDAR topic + bringup laser publisher."
+                )
+            elif (not self.obstacle_detected) and was_detected:
+                import json
+                status_msg = String()
+                status_msg.data = json.dumps({
+                    "type": "obstacle_status",
+                    "blocked": False,
+                    "sectors": [],
+                    "distances": {},
+                    "safety_distance_cm": self.SAFETY_DISTANCE_M * 100,
+                    "scan_ok": False,
+                    "reason": "no_scan_data_fail_safe_disabled",
+                })
+                self.obstacle_status_pub.publish(status_msg)
             return
 
         left_m = self.get_sector_min_distance(
@@ -346,6 +399,9 @@ class SafetyScanner(Node):
         If obstacle detected, blocks forward motion (positive linear.x).
         Backward motion and turning are always allowed.
         """
+        # Ensure fail-safe is applied even if scan never arrives (real robot misconfig).
+        self._update_obstacle_state()
+
         output_cmd = Twist()
         output_cmd.linear.y = msg.linear.y
         output_cmd.linear.z = msg.linear.z
@@ -367,8 +423,26 @@ class SafetyScanner(Node):
         Logging callback - runs every 2 seconds.
         Logs the minimum distances in each front sector.
         """
-        if self.latest_scan is None:
-            self.get_logger().warn("No LaserScan data received yet.")
+        # Keep obstacle state updated even if scan never arrives.
+        self._update_obstacle_state()
+
+        scan_ok = self._scan_is_fresh()
+        if not scan_ok:
+            self.get_logger().warn("No fresh LaserScan data received yet.")
+
+            # Still publish status so the app can show why obstacle system is inactive.
+            import json
+            status_msg = String()
+            status_msg.data = json.dumps({
+                "type": "obstacle_status",
+                "blocked": bool(self.fail_safe_on_scan_timeout),
+                "sectors": ["no_scan"] if self.fail_safe_on_scan_timeout else [],
+                "distances": {},
+                "safety_distance_cm": self.SAFETY_DISTANCE_M * 100,
+                "scan_ok": False,
+                "reason": "no_scan_data",
+            })
+            self.obstacle_status_pub.publish(status_msg)
             return
 
         # Evaluate all three sectors
@@ -412,7 +486,8 @@ class SafetyScanner(Node):
             "blocked": self.obstacle_detected,
             "sectors": obstacle_sectors,
             "distances": distances,
-            "safety_distance_cm": self.SAFETY_DISTANCE_M * 100
+            "safety_distance_cm": self.SAFETY_DISTANCE_M * 100,
+            "scan_ok": True
         })
         self.obstacle_status_pub.publish(status_msg)
 
