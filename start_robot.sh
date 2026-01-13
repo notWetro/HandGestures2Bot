@@ -116,20 +116,14 @@ fi
 # =============================================================================
 echo -e "${BLUE}[6/8]${NC} Starting Bluetooth provisioning..."
 
-# Bluetooth needs root privileges. If we are not root, prompt once and start via sudo.
+# Bluetooth needs root privileges. Delegate to start_bluetooth_provisioning.sh, which
+# runs non-interactively (no password prompt) and will print clear setup instructions
+# if sudo isn't configured.
 BT_LOG="$LOG_DIR/bluetooth_provisioning.log"
 BT_PID_FILE="$LOG_DIR/bluetooth_provisioning.pid"
 
-if [ "$EUID" -ne 0 ]; then
-    echo -e "${YELLOW}⚠${NC} Bluetooth provisioning requires root privileges"
-    echo -e "   Requesting sudo (you may be prompted)..."
-    sudo -v
-    sudo -E bash "$SCRIPT_DIR/start_bluetooth_provisioning.sh"
-    BT_START_STATUS=$?
-else
-    bash "$SCRIPT_DIR/start_bluetooth_provisioning.sh"
-    BT_START_STATUS=$?
-fi
+bash "$SCRIPT_DIR/start_bluetooth_provisioning.sh"
+BT_START_STATUS=$?
 
 # Read PID from pidfile (preferred)
 BT_PID=""

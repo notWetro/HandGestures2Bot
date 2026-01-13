@@ -129,6 +129,30 @@ sudo systemctl status bluetooth-provisioning
 sudo journalctl -u bluetooth-provisioning -f
 ```
 
+## No sudo password prompt (recommended)
+
+If `start_robot.sh` / `start_bluetooth_provisioning.sh` keeps asking for a sudo password, configure a **NOPASSWD** rule for only the provisioning starter script.
+
+1) On the robot, create a sudoers drop-in (use `visudo`, never edit sudoers with a normal editor):
+
+```bash
+sudo visudo -f /etc/sudoers.d/handgestures
+```
+
+2) Add a rule for your user (replace `<YOUR_USER>` and adjust the path to where this repo lives on the robot):
+
+```text
+<YOUR_USER> ALL=(root) NOPASSWD: /bin/bash /opt/handgestures/start_bluetooth_provisioning.sh
+```
+
+3) Validate:
+
+```bash
+sudo -n true
+```
+
+After that, `start_bluetooth_provisioning.sh` can re-run itself as root without prompting.
+
 ### In der Flutter App:
 1. Öffne Settings → Bluetooth WiFi Setup
 2. Klicke "Scan for Devices"
