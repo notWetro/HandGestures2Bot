@@ -33,14 +33,14 @@ from typing import Optional
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy, qos_profile_sensor_data
 
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 
 try:
-    from turtlebot3_msgs.msg import Sound  # type: ignore
+    from turtlebot3_msgs.srv import Sound  # type: ignore
 except Exception:  # pragma: no cover
     Sound = None  # type: ignore
 
@@ -122,9 +122,12 @@ class SafetyScanner(Node):
         # -------------------------------------------------------------------------
         # QoS Profiles
         # -------------------------------------------------------------------------
+        # TurtleBot3's LiDAR publishes with BEST_EFFORT reliability.
+        # Subscriber MUST use BEST_EFFORT to be compatible (RELIABLE subscriber
+        # cannot receive from BEST_EFFORT publisher in ROS 2).
         scan_qos = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
-            depth=5,
+            depth=10,
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
         )
@@ -175,15 +178,11 @@ class SafetyScanner(Node):
         )
 
         # -------------------------------------------------------------------------
-        # Optional sound publisher (TurtleBot3 buzzer)
+        # Optional sound service client (TurtleBot3 buzzer)
         # -------------------------------------------------------------------------
-        self.sound_pub = None
+        self.sound_client = None
         if Sound is not None:
-            self.sound_pub = self.create_publisher(
-                Sound,
-                "/sound",
-                cmd_qos,
-            )
+            self.sound_client = self.create_client(Sound, "/sound")
 
         # -------------------------------------------------------------------------
         # Create timer for periodic logging (every 2 seconds)
@@ -209,19 +208,24 @@ class SafetyScanner(Node):
         self.get_logger().info("Publishing to: /cmd_vel, /obstacle_status")
         self.get_logger().info(f"Safety distance: {self.SAFETY_DISTANCE_M * 100:.0f} cm")
         self.get_logger().info("⚠️ Send commands to /cmd_vel_in (NOT /cmd_vel directly!)")
-        if self.sound_pub is not None:
-            self.get_logger().info("Beep enabled: publishing to /sound")
+        if self.sound_client is not None:
+            self.get_logger().info("Beep enabled: using /sound service")
         else:
-            self.get_logger().warn("Beep disabled: turtlebot3_msgs/Sound not available")
+            self.get_logger().warn("Beep disabled: turtlebot3_msgs/srv/Sound not available")
 
-    def _publish_beep(self) -> None:
-        if self.sound_pub is None or Sound is None:
+    def _call_beep(self) -> None:
+        if self.sound_client is None or Sound is None:
             return
 
-        msg = Sound()
-        # turtlebot3_msgs/Sound usually provides ON constant, but fall back to 1.
-        msg.value = getattr(Sound, "ON", 1)
-        self.sound_pub.publish(msg)
+        if not self.sound_client.service_is_ready():
+            return  # Don't block, just skip if service not ready
+
+        request = Sound.Request()
+        # Sound values: OFF=0, ON=1, LOW_BATTERY=2, ERROR=3, BUTTON1=4, BUTTON2=5
+        # Use ERROR (3) for a warning-like sound
+        request.value = 3
+        # Call asynchronously to avoid blocking
+        self.sound_client.call_async(request)
 
     def _get_front_min_distance(self) -> Optional[float]:
         if self.latest_scan is None:
@@ -244,7 +248,7 @@ class SafetyScanner(Node):
 
     def beep_timer_callback(self) -> None:
         """Emit beeps depending on closest obstacle distance in front sectors."""
-        if self.sound_pub is None:
+        if self.sound_client is None:
             return
 
         front_min_m = self._get_front_min_distance()
@@ -257,7 +261,7 @@ class SafetyScanner(Node):
         # Very close: fast beeps
         if front_min_m <= self.BEEP_NEAR_M:
             if (now_s - self._last_beep_time_s) >= self.BEEP_NEAR_INTERVAL_S:
-                self._publish_beep()
+                self._call_beep()
                 self._last_beep_time_s = now_s
             self._far_beep_done = True
             return
@@ -265,7 +269,7 @@ class SafetyScanner(Node):
         # Close: slower beeps
         if front_min_m <= self.BEEP_MID_M:
             if (now_s - self._last_beep_time_s) >= self.BEEP_MID_INTERVAL_S:
-                self._publish_beep()
+                self._call_beep()
                 self._last_beep_time_s = now_s
             self._far_beep_done = True
             return
@@ -273,7 +277,7 @@ class SafetyScanner(Node):
         # Far: single beep once when entering this band
         if front_min_m <= self.BEEP_FAR_M:
             if not self._far_beep_done:
-                self._publish_beep()
+                self._call_beep()
                 self._last_beep_time_s = now_s
                 self._far_beep_done = True
             return

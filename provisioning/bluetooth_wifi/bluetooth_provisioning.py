@@ -3,9 +3,11 @@
 
 Uses bluezero library for BLE GATT server on Linux.
 Accepts Wi-Fi credentials from Android/iOS clients and connects via NetworkManager.
+After successful WiFi connection, automatically starts the WebSocket server.
 """
 import json
 import logging
+import os
 import subprocess
 import sys
 import threading
@@ -26,6 +28,11 @@ WLAN_INTERFACE = "wlan0"
 ENCODING = "utf-8"
 DEVICE_NAME = "TurtleBot3-Provisioning"
 
+# WebSocket server management
+SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+WEBSOCKET_STARTED = False
+WEBSOCKET_PID: Optional[int] = None
+
 # Global state
 ssid_value: Optional[str] = None
 password_value: Optional[str] = None
@@ -36,6 +43,50 @@ last_error: Optional[str] = None
 _provision_lock = threading.Lock()
 _provision_thread: Optional[threading.Thread] = None
 
+
+def start_websocket_server() -> bool:
+    """Start the WebSocket server after WiFi is connected."""
+    global WEBSOCKET_STARTED, WEBSOCKET_PID
+    
+    if WEBSOCKET_STARTED:
+        logging.info("WebSocket server already started")
+        return True
+    
+    try:
+        # Find the start_server.sh script
+        server_script = os.path.join(SCRIPT_DIR, "start_server.sh")
+        if not os.path.exists(server_script):
+            logging.error("WebSocket start script not found: %s", server_script)
+            return False
+        
+        # Start the websocket server
+        logging.info("🚀 Starting WebSocket server...")
+        
+        log_dir = "/tmp/turtlebot_logs"
+        os.makedirs(log_dir, exist_ok=True)
+        
+        with open(f"{log_dir}/websocket_server.log", "a") as log_file:
+            process = subprocess.Popen(
+                ["/bin/bash", server_script],
+                stdout=log_file,
+                stderr=log_file,
+                cwd=SCRIPT_DIR,
+                start_new_session=True,
+            )
+            WEBSOCKET_PID = process.pid
+        
+        # Save PID to file for stop script
+        pid_file = f"{log_dir}/robot_pids.txt"
+        with open(pid_file, "a") as f:
+            f.write(f"{WEBSOCKET_PID} websocket_server\n")
+        
+        WEBSOCKET_STARTED = True
+        logging.info("✅ WebSocket server started (PID: %d)", WEBSOCKET_PID)
+        return True
+        
+    except Exception as e:
+        logging.error("Failed to start WebSocket server: %s", e)
+        return False
 
 def _run(cmd, timeout: int = 10) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -278,6 +329,9 @@ def try_provision():
                     ip_value = ip
                     last_error = None
                     logging.info("Provisioning complete: %s -> %s", target_ssid, ip)
+                    
+                    # Start WebSocket server now that WiFi is connected
+                    start_websocket_server()
                 else:
                     status_value = "failed"
                     last_error = "Connected but no IPv4 address"
@@ -347,6 +401,8 @@ def write_ack(value, options):
 
 
 def main():
+    global status_value, ip_value
+    
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -355,6 +411,17 @@ def main():
     logging.info("Starting BLE Provisioning Server...")
     logging.info("Device name: %s", DEVICE_NAME)
     logging.info("Service UUID: %s", SERVICE_UUID)
+    
+    # Check if WiFi is already connected at startup (for status reporting only)
+    current_ip = get_wlan_ip()
+    if current_ip:
+        logging.info("WiFi already connected with IP: %s", current_ip)
+        logging.info("WebSocket will start after user provisions via Bluetooth")
+        status_value = "connected"
+        ip_value = current_ip
+        # Do NOT start WebSocket here - wait for user to provision via Bluetooth
+    else:
+        logging.info("No WiFi connection detected - waiting for provisioning...")
 
     # bluezero peripheral needs a GLib mainloop; fail fast with a clear message
     try:

@@ -9,9 +9,10 @@ set -e
 # Source ROS2 (distroyu gerekirse değiştir)
 source /opt/ros/humble/setup.bash
 
-# Go to workspace
-WS=~/HandGestures2Bot/ros2_ws
-cd $WS
+# Go to workspace - use script directory for portability
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WS="$SCRIPT_DIR/ros2_ws"
+cd "$WS"
 
 # Build workspace
 echo "Running colcon build..."

@@ -86,8 +86,11 @@ echo -e "${BLUE}[4/8]${NC} Setting environment variables..."
 export TURTLEBOT3_MODEL=burger
 export ROS_DOMAIN_ID=0
 export ROS_LOCALHOST_ONLY=0
+# Use LDS-02 (LD08) LiDAR driver instead of LDS-01 (hlds) - newer TurtleBot3 models
+export LDS_MODEL=LDS-02
 echo -e "${GREEN}✓${NC} TURTLEBOT3_MODEL=$TURTLEBOT3_MODEL"
 echo -e "${GREEN}✓${NC} ROS_DOMAIN_ID=$ROS_DOMAIN_ID"
+echo -e "${GREEN}✓${NC} LDS_MODEL=$LDS_MODEL"
 
 # From here on, don't exit on error - we want to try starting everything
 set +e
