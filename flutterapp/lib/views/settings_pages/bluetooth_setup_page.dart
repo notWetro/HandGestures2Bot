@@ -26,6 +26,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
   String _currentStatus = "idle"; // idle, connecting, connected, failed
   StreamSubscription? _ipSubscription;
   StreamSubscription? _statusSubscription;
+  StreamSubscription? _deviceSubscription;
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
     
     // Listen for IP address from robot
     _ipSubscription = _bluetoothService.onIpAddressReceived.listen((ipAddress) {
+      debugPrint('UI: Received IP Address from Robot: $ipAddress');
       if (mounted) {
         setState(() {
           _receivedIpAddress = ipAddress;
@@ -55,6 +57,22 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
         }
       }
     });
+
+    // Listen for discovered devices from the stream
+    _deviceSubscription = _bluetoothService.onDeviceFound.listen((device) {
+      if (mounted) {
+        final name = device['name'] ?? '';
+        // Double-check filter in UI to ensure only TurtleBot is shown
+        if (name.contains('TurtleBot')) {
+          setState(() {
+            final exists = _devices.any((d) => d['address'] == device['address']);
+            if (!exists) {
+              _devices.add(device);
+            }
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -63,6 +81,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
     _passwordController.dispose();
     _ipSubscription?.cancel();
     _statusSubscription?.cancel();
+    _deviceSubscription?.cancel();
     super.dispose();
   }
 
@@ -83,13 +102,12 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
 
     try {
       // Start BLE scan - will return devices as they are discovered
-      final devices = await _bluetoothService.startScanning();
-      if (mounted) {
-        setState(() {
-          _devices = devices;
-        });
-        
-        if (devices.isEmpty) {
+      final success = await _bluetoothService.startScanning();
+      
+      if (mounted && success) {
+        // Wait a bit to see if any devices are found via the stream
+        await Future.delayed(const Duration(seconds: 2));
+        if (_devices.isEmpty && mounted) {
           _showInfoDialog(
             "No Devices Found",
             "Make sure:\n"
@@ -391,7 +409,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
               const Text("Discovered devices:"),
               const SizedBox(height: 8),
               ..._devices.map((device) {
-                final deviceId = device['id'] ?? '';
+                final deviceId = device['address'] ?? '';
                 final deviceName = device['name'] ?? 'Unknown Device';
                 final isSelected = _selectedDeviceId == deviceId;
                 return Card(

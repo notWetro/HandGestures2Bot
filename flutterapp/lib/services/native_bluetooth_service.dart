@@ -14,47 +14,50 @@ class NativeBluetoothService {
   
   final _ipAddressController = StreamController<String>.broadcast();
   final _statusController = StreamController<Map<String, dynamic>>.broadcast();
+  final _devicesController = StreamController<Map<String, String>>.broadcast();
   
   Stream<String> get onIpAddressReceived => _ipAddressController.stream;
   Stream<Map<String, dynamic>> get onStatusUpdate => _statusController.stream;
+  Stream<Map<String, String>> get onDeviceFound => _devicesController.stream;
 
   void _setupMethodCallHandler() {
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'onIpAddressReceived':
           final ipAddress = call.arguments as String;
-          debugPrint('🔵 BLE: Received IP from native: $ipAddress');
+          debugPrint(' BLE: Received IP from native: $ipAddress');
           _ipAddressController.add(ipAddress);
           break;
         
         case 'onStatusUpdate':
           final status = Map<String, dynamic>.from(call.arguments);
-          debugPrint('🔵 BLE: Received status from native: $status');
+          debugPrint(' BLE: Received status from native: $status');
           _statusController.add(status);
           break;
         
+        case 'onDeviceFound':
+          final device = Map<String, String>.from(call.arguments);
+          debugPrint(' BLE: Device found: $device');
+          _devicesController.add(device);
+          break;
+
         default:
-          debugPrint('⚠️ BLE: Unknown method call: ${call.method}');
+          debugPrint(' BLE: Unknown method call: ${call.method}');
       }
     });
   }
 
   // Start BLE scan for devices
-  Future<List<Map<String, String>>> startScanning() async {
-    debugPrint("🔵 BLE: Starting scan...");
+  Future<bool> startScanning() async {
+    debugPrint(" BLE: Starting scan...");
     
     try {
       final result = await _channel.invokeMethod('startScanning');
-      debugPrint("🔵 BLE: Scan result: $result");
-      
-      if (result is List) {
-        return result.map((device) => Map<String, String>.from(device)).toList();
-      }
-      
-      return [];
+      debugPrint(" BLE: Scan result: $result");
+      return result == true;
     } catch (e) {
-      debugPrint("❌ BLE: Scan error: $e");
-      return [];
+      debugPrint(" BLE: Scan error: $e");
+      return false;
     }
   }
   
@@ -62,51 +65,49 @@ class NativeBluetoothService {
   Future<void> stopScanning() async {
     try {
       await _channel.invokeMethod('stopScanning');
-      debugPrint("🔵 BLE: Scan stopped");
+      debugPrint("BLE: Scan stopped");
     } catch (e) {
-      debugPrint("❌ BLE: Stop scan error: $e");
+      debugPrint(" BLE: Stop scan error: $e");
     }
   }
 
   // Get connected Bluetooth devices from iOS system
   Future<List<Map<String, String>>> getConnectedDevices() async {
-    debugPrint("🔵 BLE: Getting connected devices...");
+    debugPrint(" BLE: Getting connected devices...");
     
     try {
       final result = await _channel.invokeMethod('getConnectedDevices');
-      debugPrint("🔵 BLE: Result: $result");
+      debugPrint(" BLE: Result: $result");
       
-      // Parse the result - it should be a list of devices
-      if (result is Map) {
-        // For now, return empty list - we'll implement proper parsing
-        return [];
+      if (result is List) {
+        return result.map((device) => Map<String, String>.from(device)).toList();
       }
       
       return [];
     } catch (e) {
-      debugPrint("❌ BLE: Error getting devices: $e");
+      debugPrint(" BLE: Error getting devices: $e");
       return [];
     }
   }
 
   // Connect to a specific Bluetooth device by ID
   Future<bool> connectToDevice(String deviceId) async {
-    debugPrint("🔵 BLE: Connecting to device: $deviceId");
+    debugPrint(" BLE: Connecting to device: $deviceId");
     
     try {
       final result = await _channel.invokeMethod('connectToDevice', deviceId);
-      debugPrint("✅ BLE: Connected: $result");
+      debugPrint(" BLE: Connected: $result");
       return result == true;
     } catch (e) {
-      debugPrint("❌ BLE: Connection error: $e");
+      debugPrint(" BLE: Connection error: $e");
       return false;
     }
   }
 
   // Send WiFi credentials to the connected device
   Future<bool> sendWiFiCredentials(String ssid, String password) async {
-    debugPrint("🔵 BLE: Sending WiFi credentials...");
-    debugPrint("🔵 BLE: SSID: $ssid");
+    debugPrint("BLE: Sending WiFi credentials...");
+    debugPrint(" BLE: SSID: $ssid");
     
     try {
       final result = await _channel.invokeMethod('sendWiFiCredentials', {
@@ -114,10 +115,10 @@ class NativeBluetoothService {
         'password': password,
       });
       
-      debugPrint("✅ BLE: Credentials sent: $result");
+      debugPrint(" BLE: Credentials sent: $result");
       return result == true;
     } catch (e) {
-      debugPrint("❌ BLE: Error sending credentials: $e");
+      debugPrint(" BLE: Error sending credentials: $e");
       return false;
     }
   }
@@ -126,9 +127,9 @@ class NativeBluetoothService {
   Future<void> disconnect() async {
     try {
       await _channel.invokeMethod('disconnect');
-      debugPrint("🔵 BLE: Disconnected");
+      debugPrint(" BLE: Disconnected");
     } catch (e) {
-      debugPrint("❌ BLE: Disconnect error: $e");
+      debugPrint("BLE: Disconnect error: $e");
     }
   }
 
@@ -137,9 +138,9 @@ class NativeBluetoothService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('robot_ip_address', ipAddress);
-      debugPrint("💾 Saved IP address to local storage: $ipAddress");
+      debugPrint("Saved IP address to local storage: $ipAddress");
     } catch (e) {
-      debugPrint("❌ Error saving IP address: $e");
+      debugPrint("Error saving IP address: $e");
     }
   }
 
@@ -149,11 +150,11 @@ class NativeBluetoothService {
       final prefs = await SharedPreferences.getInstance();
       final ipAddress = prefs.getString('robot_ip_address');
       if (ipAddress != null) {
-        debugPrint("💾 Loaded saved IP address: $ipAddress");
+        debugPrint("Loaded saved IP address: $ipAddress");
       }
       return ipAddress;
     } catch (e) {
-      debugPrint("❌ Error loading IP address: $e");
+      debugPrint("Error loading IP address: $e");
       return null;
     }
   }
@@ -161,5 +162,6 @@ class NativeBluetoothService {
   void dispose() {
     _ipAddressController.close();
     _statusController.close();
+    _devicesController.close();
   }
 }
