@@ -4,6 +4,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutterapp/services/voice_ai_service/ai_service.dart';
 import 'package:flutterapp/services/voice_ai_service/voice_service.dart';
 import 'package:flutterapp/services/voice_ai_service/tts_service.dart';
+import 'package:flutterapp/services/voice_ai_service/eleven_labs_service.dart';
 import 'package:flutterapp/services/robot_service.dart';
 
 class VoiceView extends StatefulWidget {
@@ -18,6 +19,7 @@ class _VoiceViewState extends State<VoiceView> {
   final AiService _aiService = AiService();
   final VoiceService _voiceService = VoiceService();
   final TtsService _ttsService = TtsService();
+  final ElevenLabsService _elevenLabsService = ElevenLabsService();
   final RobotService _robotService = RobotService();
 
   // State
@@ -26,6 +28,14 @@ class _VoiceViewState extends State<VoiceView> {
   String _aiResponse = "{}";
   bool _isListening = false;
   bool _canSpeak = false;
+
+  // ElevenLabs Voices (Name : ID)
+  final Map<String, String> _voices = {
+    'Micky Mouse (male)': 'mdzEgLpu0FjTwYs5oot0', 
+    'Micky Mouse (female)': 'eppqEXVumQ3CfdndcIBd',
+    'Evil': 'PSkrmGGNwoOIKXqzUWs9',
+  };
+  String _selectedVoiceName = 'Micky Mouse (male)';
 
   @override
   void initState() {
@@ -59,7 +69,7 @@ class _VoiceViewState extends State<VoiceView> {
     // VoiceService initialize 
     final micReady = await _voiceService.initialize();
 
-    if (mounted) setState(() => _status = "Connecting to Robot... (!! TO IMPLEMENT !!)");
+    if (mounted) setState(() => _status = "Connecting to Robot... ");
     try {
       // Timeout to prevent hanging if robot is offline
       await _robotService.connect().timeout(const Duration(seconds: 2));
@@ -113,7 +123,7 @@ class _VoiceViewState extends State<VoiceView> {
         });
 
         // Get JSON String from AI
-        final jsonString = await _aiService.sendCommand(text);
+        final jsonString = await _aiService.sendCommand(text, personaName: _selectedVoiceName);
         
         if (mounted) {
           setState(() {
@@ -143,7 +153,7 @@ class _VoiceViewState extends State<VoiceView> {
         if (data.containsKey('response')) {
           String aiSpeech = data['response'];
           debugPrint("AI Says: $aiSpeech");
-          _ttsService.speak(aiSpeech); 
+          _elevenLabsService.speak(aiSpeech, _voices[_selectedVoiceName]!);
         } 
         
         // Check for "direction" and move robot
@@ -178,6 +188,34 @@ class _VoiceViewState extends State<VoiceView> {
         child: Column(
           children: [
             Text(_status, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            // Voice Selector Dropdown
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedVoiceName,
+                  dropdownColor: Colors.grey[800],
+                  style: const TextStyle(color: Colors.white),
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  items: _voices.keys.map((String name) {
+                    return DropdownMenuItem<String>(
+                      value: name,
+                      child: Text("$name (ElevenLabs)"),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() => _selectedVoiceName = newValue);
+                    }
+                  },
+                ),
+              ),
+            ),
             const Spacer(),
             _buildChatBubble("USER", _userSpeech, Colors.blue),
             const SizedBox(height: 20),
