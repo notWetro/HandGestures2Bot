@@ -24,7 +24,7 @@ class AiService {
     );
   }
 
-  Future<String> sendCommand(String text) async {
+  Future<String> sendCommand(String text, {String? personaName}) async {
     if (_brain == null) return '{"error": "AI not ready"}';
 
     try {
@@ -34,8 +34,20 @@ class AiService {
         topK: 40,
       );
 
+<<<<<<< HEAD
       final fullPrompt = '$_systemPrompt\nUser: "$text"\nAI:';
 
+=======
+      String currentPrompt = _systemPrompt;
+      if (personaName != null) {
+        currentPrompt += "\n  3. The 'response' text MUST be in the style/personality of $personaName.";
+      }
+
+      // Combine personality + user command
+      final fullPrompt = '$currentPrompt\nUser: "$text"\nAI:';
+      
+      // Send to brain
+>>>>>>> c5d28231397c684aab004f2c3928f3ba4947fe1f
       await session.addQueryChunk(Message.text(text: fullPrompt, isUser: true));
       final result = await session.generateChatResponse();
 

@@ -60,11 +60,6 @@ echo -e "${YELLOW}Checking for remaining processes...${NC}"
 pkill -f "turtlebot3_bringup" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed turtlebot3_bringup"
 pkill -f "robot.launch.py" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed robot.launch.py"
 
-# Kill LiDAR driver (critical - leaves zombie publishers if not killed)
-pkill -9 -f "hlds_laser_publisher" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hlds_laser_publisher"
-pkill -9 -f "ld08_driver" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed ld08_driver"
-pkill -9 -f "lds_driver" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed lds_driver"
-
 # Kill Bluetooth provisioning
 pkill -f "bluetooth_provisioning" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed bluetooth_provisioning"
 

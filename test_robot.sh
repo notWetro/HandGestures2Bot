@@ -79,25 +79,20 @@ fi
 # Test 3: Check /scan topic exists
 # =============================================================================
 echo -e "${BLUE}[Test 3]${NC} LaserScan Topic (/scan)"
-SCAN_TOPIC="$(ros2 topic list 2>/dev/null | grep -w "/scan" | head -n 1)"
-if [ -z "$SCAN_TOPIC" ]; then
-    # Some setups namespace the scan topic (e.g. /tb3/scan)
-    SCAN_TOPIC="$(ros2 topic list 2>/dev/null | grep -E '/scan$' | head -n 1)"
-fi
-
+SCAN_TOPIC=$(ros2 topic list 2>/dev/null | grep -w "/scan")
 if [ -n "$SCAN_TOPIC" ]; then
-    run_test "LaserScan topic exists ($SCAN_TOPIC)" 0
-
+    run_test "/scan topic exists" 0
+    
     # Check if data is being published
-    echo -e "  ${YELLOW}→${NC} Checking for data on $SCAN_TOPIC (5 second timeout)..."
-    SCAN_DATA=$(timeout 5 ros2 topic echo "$SCAN_TOPIC" --once 2>/dev/null | head -n 5)
+    echo -e "  ${YELLOW}→${NC} Checking for data (5 second timeout)..."
+    SCAN_DATA=$(timeout 5 ros2 topic echo /scan --once 2>/dev/null | head -n 5)
     if [ -n "$SCAN_DATA" ]; then
-        run_test "$SCAN_TOPIC is publishing data" 0
+        run_test "/scan is publishing data" 0
     else
-        run_test "$SCAN_TOPIC is publishing data" 1
+        run_test "/scan is publishing data" 1
     fi
 else
-    run_test "LaserScan topic exists (/scan or */scan)" 1
+    run_test "/scan topic exists" 1
 fi
 
 # =============================================================================

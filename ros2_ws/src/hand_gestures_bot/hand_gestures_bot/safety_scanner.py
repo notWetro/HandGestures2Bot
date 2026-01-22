@@ -76,6 +76,8 @@ class SafetyScanner(Node):
     CENTER_SECTOR_MAX_DEG = 7.5
     RIGHT_SECTOR_MIN_DEG = -22.5
     RIGHT_SECTOR_MAX_DEG = -7.5
+    BEHIND_SECTOR_MIN_DEG = 157.5
+    BEHIND_SECTOR_MAX_DEG = -157.5
 
     # -------------------------------------------------------------------------
     # Safety Configuration
@@ -207,7 +209,7 @@ class SafetyScanner(Node):
         self.get_logger().info(f"Subscribing to: {self.scan_topic}, /cmd_vel_in")
         self.get_logger().info("Publishing to: /cmd_vel, /obstacle_status")
         self.get_logger().info(f"Safety distance: {self.SAFETY_DISTANCE_M * 100:.0f} cm")
-        self.get_logger().info("⚠️ Send commands to /cmd_vel_in (NOT /cmd_vel directly!)")
+        self.get_logger().info("Send commands to /cmd_vel_in (NOT /cmd_vel directly!)")
         if self.sound_client is not None:
             self.get_logger().info("Beep enabled: using /sound service")
         else:
@@ -239,6 +241,12 @@ class SafetyScanner(Node):
         )
         right_m = self.get_sector_min_distance(
             self.latest_scan, self.RIGHT_SECTOR_MIN_DEG, self.RIGHT_SECTOR_MAX_DEG
+        )
+        behind_m = self.get_sector_min_distance(
+            self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
+        )
+        behind_m = self.get_sector_min_distance(
+            self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
         )
 
         candidates = [d for d in (left_m, center_m, right_m) if d is not None]
@@ -368,6 +376,9 @@ class SafetyScanner(Node):
             if right_m < self.SAFETY_DISTANCE_M:
                 obstacle_sectors.append("right")
 
+        if behind_m is not None:
+            distances["behind"] = round(behind_m * 100, 1)
+
         was_detected = self.obstacle_detected
         self.obstacle_detected = len(obstacle_sectors) > 0
 
@@ -464,6 +475,7 @@ class SafetyScanner(Node):
         left_cm = self.meters_to_cm_string(left_m)
         center_cm = self.meters_to_cm_string(center_m)
         right_cm = self.meters_to_cm_string(right_m)
+        behind_cm = self.meters_to_cm_string(behind_m)
 
         # Build distances dict for status message
         distances = {}
@@ -481,6 +493,9 @@ class SafetyScanner(Node):
             distances["right"] = round(right_m * 100, 1)
             if right_m < self.SAFETY_DISTANCE_M:
                 obstacle_sectors.append("right")
+
+        if behind_m is not None:
+            distances["behind"] = round(behind_m * 100, 1)
 
         # Publish status EVERY timer tick (every 2 seconds)
         import json
@@ -506,7 +521,8 @@ class SafetyScanner(Node):
             f"\nFront distances:\n"
             f"Left:   {add_warning(left_m, left_cm)}\n"
             f"Center: {add_warning(center_m, center_cm)}\n"
-            f"Right:  {add_warning(right_m, right_cm)}"
+            f"Right:  {add_warning(right_m, right_cm)}\n"
+            f"Behind: {behind_cm}"
         )
 
     def get_sector_min_distance(
