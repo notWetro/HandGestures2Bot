@@ -363,17 +363,6 @@ class _CameraViewState extends State<CameraView> {
 
     return Stack(
       children: [
-        // Links
-        if (_currentObstacleStatus!.isSectorBlocked('left'))
-          Positioned(
-            left: 16,
-            top: 16,
-            child: _buildWarningBadge(
-              'OBJEKT LINKS',
-              _currentObstacleStatus!.getDistance('left'),
-            ),
-          ),
-        // Mitte
         if (_currentObstacleStatus!.isSectorBlocked('center'))
           Positioned(
             top: 16,
@@ -386,14 +375,16 @@ class _CameraViewState extends State<CameraView> {
               ),
             ),
           ),
-        // Rechts
-        if (_currentObstacleStatus!.isSectorBlocked('right'))
+        if (_currentObstacleStatus!.isSectorBlocked('behind'))
           Positioned(
-            right: 16,
-            top: 16,
-            child: _buildWarningBadge(
-              'OBJEKT RECHTS',
-              _currentObstacleStatus!.getDistance('right'),
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: _buildWarningBadge(
+                'OBJEKT HINTEN',
+                _currentObstacleStatus!.getDistance('behind'),
+              ),
             ),
           ),
       ],
