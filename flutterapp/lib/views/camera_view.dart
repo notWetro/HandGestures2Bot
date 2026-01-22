@@ -52,13 +52,14 @@ class _CameraViewState extends State<CameraView> {
       final robotIp = await _robotService.getRobotIp();
       if (robotIp != null && robotIp.isNotEmpty) {
         _obstacleSensorService.connect(robotIp);
-        _obstacleSubscription = _obstacleSensorService.obstacleStatusStream.listen((status) {
-          if (mounted) {
-            setState(() {
-              _currentObstacleStatus = status;
+        _obstacleSubscription = _obstacleSensorService.obstacleStatusStream
+            .listen((status) {
+              if (mounted) {
+                setState(() {
+                  _currentObstacleStatus = status;
+                });
+              }
             });
-          }
-        });
       }
     } catch (e) {
       debugPrint("Failed to connect to obstacle sensor: $e");
@@ -69,7 +70,7 @@ class _CameraViewState extends State<CameraView> {
       if (mounted) {
         // Check if this gesture is assigned to a dance
         final dance = await _danceService.getDanceByGesture(gesture);
-        
+
         if (dance != null && !_isDancePlaying) {
           // Play dance sequence
           setState(() {
@@ -79,7 +80,9 @@ class _CameraViewState extends State<CameraView> {
               commandHistory.removeLast();
             }
           });
-          debugPrint("Detected Gesture: $gesture -> Playing Dance: ${dance.name}");
+          debugPrint(
+            "Detected Gesture: $gesture -> Playing Dance: ${dance.name}",
+          );
           await _playDance(dance);
         } else if (!_isDancePlaying) {
           // Normal gesture command
@@ -98,8 +101,7 @@ class _CameraViewState extends State<CameraView> {
         }
       }
     });
-    
-    // Connect to the robot
+
     try {
       await _robotService.connect();
     } catch (e) {
@@ -109,26 +111,25 @@ class _CameraViewState extends State<CameraView> {
 
   Future<void> _playDance(DanceMove dance) async {
     _isDancePlaying = true;
-    
+
     for (final step in dance.steps) {
       if (!mounted || !_isDancePlaying) break;
-      
-      debugPrint("Dance step: ${step.movement} for ${step.durationMs}ms");
+
       _robotService.sendCommand(step.movement);
-      
+
       setState(() {
         robotCommand = step.movement;
       });
-      
+
       await Future.delayed(Duration(milliseconds: step.durationMs));
     }
-    
+
     // Stop at the end
     _robotService.sendCommand('stop');
     setState(() {
       robotCommand = 'stop';
     });
-    
+
     _isDancePlaying = false;
   }
 
@@ -165,8 +166,9 @@ class _CameraViewState extends State<CameraView> {
   // PERMISSION LOGIC FOR ANDROID
   Future<void> _getCameraPermissionAndroid() async {
     try {
-      final bool result =
-          await cameraPermission.invokeMethod('getCameraPermission');
+      final bool result = await cameraPermission.invokeMethod(
+        'getCameraPermission',
+      );
       if (mounted) {
         setState(() {
           isPermissionGranted = result;
@@ -176,7 +178,7 @@ class _CameraViewState extends State<CameraView> {
         }
       }
     } on PlatformException catch (e) {
-      debugPrint("Failed to get camera permission: '${e.message}'.");
+      // Permission error
     }
   }
 
@@ -310,8 +312,8 @@ class _CameraViewState extends State<CameraView> {
                                   width: 24,
                                   height: 24,
                                   decoration: BoxDecoration(
-                                    color: index == 0 
-                                        ? Colors.green 
+                                    color: index == 0
+                                        ? Colors.green
                                         : Colors.grey.withOpacity(0.3),
                                     shape: BoxShape.circle,
                                   ),
@@ -321,7 +323,9 @@ class _CameraViewState extends State<CameraView> {
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: index == 0 ? Colors.white : Colors.black54,
+                                        color: index == 0
+                                            ? Colors.white
+                                            : Colors.black54,
                                       ),
                                     ),
                                   ),
@@ -331,8 +335,12 @@ class _CameraViewState extends State<CameraView> {
                                   command,
                                   style: TextStyle(
                                     fontSize: 16,
-                                    fontWeight: index == 0 ? FontWeight.bold : FontWeight.normal,
-                                    color: index == 0 ? Colors.green : Colors.black87,
+                                    fontWeight: index == 0
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: index == 0
+                                        ? Colors.green
+                                        : Colors.black87,
                                   ),
                                 ),
                               ],
@@ -427,10 +435,7 @@ class _CameraViewState extends State<CameraView> {
           if (distance != null)
             Text(
               '${distance.toInt()} cm',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
         ],
       ),

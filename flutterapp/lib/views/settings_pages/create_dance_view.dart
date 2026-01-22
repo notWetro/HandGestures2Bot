@@ -83,8 +83,6 @@ class _CreateDanceViewState extends State<CreateDanceView> {
 
   Future<void> pickMp3() async {
     try {
-      debugPrint("📂 Öffne MP3 Picker");
-
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['mp3'],
@@ -92,7 +90,6 @@ class _CreateDanceViewState extends State<CreateDanceView> {
       );
 
       if (result == null) {
-        debugPrint("❌ Picker abgebrochen");
         return;
       }
 
@@ -102,11 +99,8 @@ class _CreateDanceViewState extends State<CreateDanceView> {
         _selectedMusicPath = file.path;
         _selectedMusicName = file.name;
       });
-
-      debugPrint("✅ MP3 gewählt: ${file.name}");
-      debugPrint("📍 Pfad: ${file.path}");
     } catch (e) {
-      debugPrint("🔥 Picker Fehler: $e");
+      // Picker error
     }
   }
 

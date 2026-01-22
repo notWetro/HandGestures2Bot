@@ -5,14 +5,16 @@ import '../models/obstacle_status.dart';
 
 class ObstacleSensorService {
   WebSocketChannel? _channel;
-  final _obstacleStatusController = StreamController<ObstacleStatus>.broadcast();
+  final _obstacleStatusController =
+      StreamController<ObstacleStatus>.broadcast();
   final _connectionStatusController = StreamController<bool>.broadcast();
-  
+
   String? _robotIp;
   int _port = 8765;
   bool _isConnected = false;
 
-  Stream<ObstacleStatus> get obstacleStatusStream => _obstacleStatusController.stream;
+  Stream<ObstacleStatus> get obstacleStatusStream =>
+      _obstacleStatusController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
   bool get isConnected => _isConnected;
 
@@ -26,7 +28,7 @@ class ObstacleSensorService {
     try {
       final uri = Uri.parse('ws://$_robotIp:$_port');
       _channel = WebSocketChannel.connect(uri);
-      
+
       _isConnected = true;
       _connectionStatusController.add(true);
 
@@ -49,13 +51,13 @@ class ObstacleSensorService {
   void _handleMessage(dynamic message) {
     try {
       final json = jsonDecode(message as String);
-      
+
       if (json['type'] == 'obstacle_status') {
         final obstacleStatus = ObstacleStatus.fromJson(json);
         _obstacleStatusController.add(obstacleStatus);
       }
     } catch (e) {
-      print('Error parsing obstacle status: $e');
+      // Parsing error
     }
   }
 
@@ -68,7 +70,7 @@ class ObstacleSensorService {
   void _handleDisconnect() {
     _isConnected = false;
     _connectionStatusController.add(false);
-    
+
     // Auto-reconnect nach 3 Sekunden
     Future.delayed(const Duration(seconds: 3), () {
       if (_robotIp != null && !_isConnected) {

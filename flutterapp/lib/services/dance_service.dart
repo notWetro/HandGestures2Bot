@@ -13,7 +13,7 @@ class DanceService {
   Future<List<DanceMove>> loadDanceMoves() async {
     try {
       final String? jsonString = await _channel.invokeMethod('loadDanceMoves');
-      
+
       if (jsonString == null || jsonString.isEmpty) {
         return [];
       }
@@ -31,7 +31,9 @@ class DanceService {
 
   Future<void> saveDanceMoves(List<DanceMove> dances) async {
     try {
-      final String jsonString = jsonEncode(dances.map((d) => d.toJson()).toList());
+      final String jsonString = jsonEncode(
+        dances.map((d) => d.toJson()).toList(),
+      );
       await _channel.invokeMethod('saveDanceMoves', jsonString);
     } on PlatformException catch (e) {
       debugPrint('Error saving dance moves: ${e.message}');
@@ -43,13 +45,13 @@ class DanceService {
   Future<void> saveDanceMove(DanceMove dance) async {
     final dances = await loadDanceMoves();
     final index = dances.indexWhere((d) => d.id == dance.id);
-    
+
     if (index >= 0) {
       dances[index] = dance;
     } else {
       dances.add(dance);
     }
-    
+
     await saveDanceMoves(dances);
   }
 

@@ -25,21 +25,16 @@ class _RobotConnectionPageState extends State<RobotConnectionPage> {
   Future<void> _testConnection() async {
     try {
       await _robotService.connect();
-      debugPrint('Connected! Sending forward for 3 seconds...');
 
-      // Send forward commands at 10Hz
-      for (int i = 0; i < 30; i++) { // 30 × 100ms = 3 seconds
+      for (int i = 0; i < 30; i++) {
         _robotService.sendCommand('forward');
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
-      // NOW send stop
       _robotService.sendCommand('stop');
-      debugPrint('Sent STOP after 3 seconds of stable forward.');
 
       _robotService.disconnect();
     } catch (e) {
-      debugPrint("Error during test connection: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to connect: $e'),

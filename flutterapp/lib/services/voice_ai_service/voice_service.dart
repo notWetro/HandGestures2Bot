@@ -4,7 +4,6 @@ class VoiceService {
   final SpeechToText _speech = SpeechToText();
   bool _isAvailable = false;
 
-  /// Initialize the microphone
   Future<bool> initialize() async {
     _isAvailable = await _speech.initialize(
       onError: (e) => print("mic error: $e"),
@@ -13,12 +12,11 @@ class VoiceService {
     return _isAvailable;
   }
 
-  /// Start listening 
   Future<void> listen({required Function(String) onResult}) async {
     if (!_isAvailable) return;
 
     var systemLocale = await _speech.systemLocale();
-    String localeId = 'en_US'; 
+    String localeId = 'en_US';
 
     await _speech.listen(
       onResult: (result) {
@@ -26,9 +24,9 @@ class VoiceService {
           onResult(result.recognizedWords);
         }
       },
-      localeId: localeId, 
-      
-      listenMode: ListenMode.deviceDefault, 
+      localeId: localeId,
+
+      listenMode: ListenMode.deviceDefault,
       cancelOnError: true,
     );
   }

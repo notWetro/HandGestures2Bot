@@ -12,7 +12,6 @@ class GestureService {
   final _gestureController = StreamController<String>.broadcast();
   final _saveSuccessController = StreamController<String>.broadcast();
 
-
   // View type identifiers for the native platform views
   static const String _androidViewType = 'my_camera_view';
   static const String _iosViewType = 'my_camera_view';
@@ -21,13 +20,10 @@ class GestureService {
     _channel.setMethodCallHandler(_handleMethodCall);
   }
 
-  /// Public stream for UI widgets to listen for recognized gestures.
   Stream<String> get onGesture => _gestureController.stream;
-  
-  /// Public stream for UI to get feedback on save success.
+
   Stream<String> get onSaveSuccess => _saveSuccessController.stream;
 
-  // Handles methods invoked from the native side
   Future<void> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
       case 'onGesture':
@@ -41,28 +37,24 @@ class GestureService {
     }
   }
 
-  /// Asks the native side to save the current gesture with the given name.
   Future<void> saveGesture(String name) async {
     try {
-      // Platform check is illustrative; MethodChannel is already cross-platform.
       await _channel.invokeMethod('saveGesture', name);
     } on PlatformException catch (e) {
       debugPrint("Failed to save gesture: '${e.message}'.");
-      // Optionally, push an error to a stream
-    }
-  }
-  
-  /// Retrieves the list of saved gesture names from the native side.
-  Future<List<String>> getGestureList() async {
-    try {
-      final List<dynamic>? result = await _channel.invokeMethod('getGestureList');
-      return result?.cast<String>() ?? [];
-    } on PlatformException catch (e) {
-      debugPrint("Failed to get gesture list: '${e.message}'.");
-      return [];
     }
   }
 
+  Future<List<String>> getGestureList() async {
+    try {
+      final List<dynamic>? result = await _channel.invokeMethod(
+        'getGestureList',
+      );
+      return result?.cast<String>() ?? [];
+    } on PlatformException catch (e) {
+      return [];
+    }
+  }
 
   /// Builds and returns the appropriate native camera view widget.
   Widget buildCameraView() {

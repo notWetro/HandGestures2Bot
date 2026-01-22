@@ -36,14 +36,12 @@ class _VoiceViewState extends State<VoiceView> {
   Future<void> _initializeSystem() async {
     if (mounted) setState(() => _status = "Initializing AI...");
 
-    // Initialize ai before using it
     try {
       await FlutterGemma.initialize();
     } catch (e) {
       debugPrint("Gemma init warning: $e");
     }
 
-    // Initialize All Services
     bool aiReady = false;
     try {
       await _aiService.initialize();
@@ -55,16 +53,15 @@ class _VoiceViewState extends State<VoiceView> {
 
     if (mounted) setState(() => _status = "Starting Voice Services...");
     await _ttsService.initialize();
-    
-    // VoiceService initialize 
+
     final micReady = await _voiceService.initialize();
 
-    if (mounted) setState(() => _status = "Connecting to Robot... (!! TO IMPLEMENT !!)");
+    if (mounted)
+      setState(() => _status = "Connecting to Robot... (!! TO IMPLEMENT !!)");
     try {
-      // Timeout to prevent hanging if robot is offline
       await _robotService.connect().timeout(const Duration(seconds: 2));
     } catch (e) {
-      debugPrint("Robot connection check: $e");
+      // Ignore error
     }
 
     if (mounted) {
@@ -78,8 +75,7 @@ class _VoiceViewState extends State<VoiceView> {
         }
       });
     }
-    
-    // Greeting
+
     _ttsService.speak("System Online");
   }
 
@@ -103,28 +99,30 @@ class _VoiceViewState extends State<VoiceView> {
         });
       }
 
-      await _voiceService.listen(onResult: (text) async {
-        if (!mounted) return;
+      await _voiceService.listen(
+        onResult: (text) async {
+          if (!mounted) return;
 
-        setState(() {
-          _userSpeech = text;
-          _isListening = false;
-          _status = "🤔 Processing...";
-        });
-
-        // Get JSON String from AI
-        final jsonString = await _aiService.sendCommand(text);
-        
-        if (mounted) {
           setState(() {
-            _aiResponse = jsonString;
-            _status = "COMMAND EXECUTED";
+            _userSpeech = text;
+            _isListening = false;
+            _status = "Processing...";
           });
-        }
 
-        // Speak the Action
-        _speakAction(jsonString);
-      });
+          // Get JSON String from AI
+          final jsonString = await _aiService.sendCommand(text);
+
+          if (mounted) {
+            setState(() {
+              _aiResponse = jsonString;
+              _status = "COMMAND EXECUTED";
+            });
+          }
+
+          // Speak the Action
+          _speakAction(jsonString);
+        },
+      );
     }
   }
 
@@ -134,28 +132,28 @@ class _VoiceViewState extends State<VoiceView> {
       // Find the JSON part
       final startIndex = jsonString.indexOf('{');
       final endIndex = jsonString.lastIndexOf('}');
-      
+
       if (startIndex != -1 && endIndex != -1) {
         final cleanJson = jsonString.substring(startIndex, endIndex + 1);
         final data = jsonDecode(cleanJson);
-        
+
         // Check for the "response" field and speak it
         if (data.containsKey('response')) {
           String aiSpeech = data['response'];
           debugPrint("AI Says: $aiSpeech");
-          _ttsService.speak(aiSpeech); 
-        } 
-        
+          _ttsService.speak(aiSpeech);
+        }
+
         // Check for "direction" and move robot
         if (data.containsKey('direction')) {
-           String direction = data['direction'];
-           debugPrint("Robot Command: $direction");
-           _robotService.sendCommand(direction);
-           
-           // Fallback speech if no response field
-           if (!data.containsKey('response')) {
-             _ttsService.speak("Moving $direction");
-           }
+          String direction = data['direction'];
+          debugPrint("Robot Command: $direction");
+          _robotService.sendCommand(direction);
+
+          // Fallback speech if no response field
+          if (!data.containsKey('response')) {
+            _ttsService.speak("Moving $direction");
+          }
         }
       }
     } catch (e) {
@@ -177,7 +175,13 @@ class _VoiceViewState extends State<VoiceView> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text(_status, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+            Text(
+              _status,
+              style: const TextStyle(
+                color: Colors.greenAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const Spacer(),
             _buildChatBubble("USER", _userSpeech, Colors.blue),
             const SizedBox(height: 20),
@@ -190,13 +194,27 @@ class _VoiceViewState extends State<VoiceView> {
                 height: 80,
                 width: 80,
                 decoration: BoxDecoration(
-                  color: _canSpeak ? (_isListening ? Colors.red : Colors.green) : Colors.grey,
+                  color: _canSpeak
+                      ? (_isListening ? Colors.red : Colors.green)
+                      : Colors.grey,
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: (_canSpeak ? (_isListening ? Colors.red : Colors.green) : Colors.grey).withOpacity(0.5), blurRadius: 20, spreadRadius: 5)
-                  ]
+                    BoxShadow(
+                      color:
+                          (_canSpeak
+                                  ? (_isListening ? Colors.red : Colors.green)
+                                  : Colors.grey)
+                              .withOpacity(0.5),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
                 ),
-                child: Icon(_isListening ? Icons.stop : Icons.mic, color: Colors.white, size: 40),
+                child: Icon(
+                  _isListening ? Icons.stop : Icons.mic,
+                  color: Colors.white,
+                  size: 40,
+                ),
               ),
             ),
             const SizedBox(height: 30),
@@ -217,8 +235,18 @@ class _VoiceViewState extends State<VoiceView> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.5))),
-          child: Text(text, style: const TextStyle(color: Colors.white, fontFamily: 'monospace')),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withOpacity(0.5)),
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontFamily: 'monospace',
+            ),
+          ),
         ),
       ],
     );

@@ -11,10 +11,10 @@ class BluetoothSetupPage extends StatefulWidget {
 
 class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
   final NativeBluetoothService _bluetoothService = NativeBluetoothService();
-  
+
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
   List<Map<String, String>> _devices = [];
   String? _selectedDeviceId;
   String? _selectedDeviceName;
@@ -32,8 +32,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
   void initState() {
     super.initState();
     _loadSavedIp();
-    
-    // Listen for IP address from robot
+
     _ipSubscription = _bluetoothService.onIpAddressReceived.listen((ipAddress) {
       debugPrint('UI: Received IP Address from Robot: $ipAddress');
       if (mounted) {
@@ -44,16 +43,18 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
         _showSuccessDialog(ipAddress);
       }
     });
-    
+
     // Listen for status updates from robot
     _statusSubscription = _bluetoothService.onStatusUpdate.listen((status) {
       if (mounted) {
         setState(() {
           _currentStatus = status['status'] ?? 'idle';
         });
-        
+
         if (status['status'] == 'failed') {
-          _showErrorDialog("WiFi connection failed: ${status['reason'] ?? 'Unknown error'}");
+          _showErrorDialog(
+            "WiFi connection failed: ${status['reason'] ?? 'Unknown error'}",
+          );
         }
       }
     });
@@ -65,7 +66,9 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
         // Double-check filter in UI to ensure only TurtleBot is shown
         if (name.contains('TurtleBot')) {
           setState(() {
-            final exists = _devices.any((d) => d['address'] == device['address']);
+            final exists = _devices.any(
+              (d) => d['address'] == device['address'],
+            );
             if (!exists) {
               _devices.add(device);
             }
@@ -103,7 +106,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
     try {
       // Start BLE scan - will return devices as they are discovered
       final success = await _bluetoothService.startScanning();
-      
+
       if (mounted && success) {
         // Wait a bit to see if any devices are found via the stream
         await Future.delayed(const Duration(seconds: 2));
@@ -111,11 +114,11 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
           _showInfoDialog(
             "No Devices Found",
             "Make sure:\n"
-            "• TurtleBot is powered on\n"
-            "• TurtleBot BLE service is running\n"
-            "• Bluetooth is enabled on iPhone\n"
-            "• Robot is advertising with service UUID:\n"
-            "  12345678-1234-5678-1234-56789abcdef0"
+                "• TurtleBot is powered on\n"
+                "• TurtleBot BLE service is running\n"
+                "• Bluetooth is enabled on iPhone\n"
+                "• Robot is advertising with service UUID:\n"
+                "  12345678-1234-5678-1234-56789abcdef0",
           );
         }
       }
@@ -144,9 +147,11 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
           _isConnected = success;
           _isConnecting = false;
         });
-        
+
         if (!success) {
-          _showErrorDialog("Failed to connect. Make sure the robot service is running.");
+          _showErrorDialog(
+            "Failed to connect. Make sure the robot service is running.",
+          );
         }
       }
     } catch (e) {
@@ -174,16 +179,18 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
         _ssidController.text,
         _passwordController.text,
       );
-      
+
       if (mounted) {
         setState(() {
           _isSendingCredentials = false;
         });
-        
+
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("WiFi credentials sent! Waiting for robot to connect..."),
+              content: Text(
+                "WiFi credentials sent! Waiting for robot to connect...",
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -205,7 +212,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("✅ Setup Complete!"),
+        title: const Text("Setup Complete!"),
         content: Text(
           "Robot connected to WiFi!\n\n"
           "IP Address: $ipAddress\n\n"
@@ -279,7 +286,10 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                   children: [
                     Text(
                       "Setup Instructions:",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     SizedBox(height: 8),
                     Text("1. Make sure TurtleBot BLE is advertising"),
@@ -290,17 +300,17 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Connection Status Indicator
             if (_isConnected && _currentStatus != 'idle')
               Card(
-                color: _currentStatus == 'connecting' 
+                color: _currentStatus == 'connecting'
                     ? Colors.orange[50]
                     : _currentStatus == 'connected'
-                        ? Colors.green[50]
-                        : Colors.red[50],
+                    ? Colors.green[50]
+                    : Colors.red[50],
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
@@ -321,8 +331,8 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                           _currentStatus == 'connecting'
                               ? "Robot is connecting to WiFi..."
                               : _currentStatus == 'connected'
-                                  ? "✅ Robot connected to WiFi!"
-                                  : "❌ WiFi connection failed",
+                              ? "Robot connected to WiFi!"
+                              : "WiFi connection failed",
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -330,9 +340,9 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                   ),
                 ),
               ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Current saved IP
             if (_receivedIpAddress != null)
               Card(
@@ -359,9 +369,9 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                   ),
                 ),
               ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Step 1: Scan for devices
             Text(
               "Step 1: Scan for Devices",
@@ -401,9 +411,9 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                 minimumSize: const Size(double.infinity, 48),
               ),
             ),
-            
+
             const SizedBox(height: 10),
-            
+
             // Device list
             if (_devices.isNotEmpty) ...[
               const Text("Discovered devices:"),
@@ -424,16 +434,18 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                     trailing: _isConnecting && isSelected
                         ? const CircularProgressIndicator()
                         : _isConnected && isSelected
-                            ? const Icon(Icons.check_circle, color: Colors.green)
-                            : null,
-                    onTap: _isConnected ? null : () => _connectToDevice(deviceId, deviceName),
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : null,
+                    onTap: _isConnected
+                        ? null
+                        : () => _connectToDevice(deviceId, deviceName),
                   ),
                 );
               }).toList(),
             ],
-            
+
             const SizedBox(height: 30),
-            
+
             // Step 2: WiFi Credentials
             if (_isConnected) ...[
               Text(
@@ -475,7 +487,9 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.send),
-                label: Text(_isSendingCredentials ? "Sending..." : "Send to Robot"),
+                label: Text(
+                  _isSendingCredentials ? "Sending..." : "Send to Robot",
+                ),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                   backgroundColor: Colors.green,

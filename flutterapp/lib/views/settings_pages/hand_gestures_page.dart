@@ -25,7 +25,7 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
   // Service to handle native communication
   final GestureService _gestureService = GestureService();
   final DanceService _danceService = DanceService();
-  
+
   // State variables
   List<String> _savedGestures = [];
   List<DanceMove> _dances = [];
@@ -216,11 +216,15 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                               final action = _robotActions[index];
 
                               // Check if this action is already learned
-                              final isConfigured = _savedGestures.contains(action);
+                              final isConfigured = _savedGestures.contains(
+                                action,
+                              );
 
                               return Card(
                                 elevation: isConfigured ? 2 : 0,
-                                color: isConfigured ? Colors.white : Colors.grey[100],
+                                color: isConfigured
+                                    ? Colors.white
+                                    : Colors.grey[100],
                                 margin: const EdgeInsets.only(bottom: 12),
                                 shape: RoundedRectangleBorder(
                                   side: BorderSide(
@@ -237,8 +241,12 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                                         ? Colors.green.shade100
                                         : Colors.grey.shade300,
                                     child: Icon(
-                                      isConfigured ? Icons.check : Icons.question_mark,
-                                      color: isConfigured ? Colors.green : Colors.grey,
+                                      isConfigured
+                                          ? Icons.check
+                                          : Icons.question_mark,
+                                      color: isConfigured
+                                          ? Colors.green
+                                          : Colors.grey,
                                     ),
                                   ),
                                   title: Text(
@@ -264,17 +272,24 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                                   ),
                                   trailing: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          isConfigured ? Colors.white : Colors.blue,
-                                      foregroundColor:
-                                          isConfigured ? Colors.blue : Colors.white,
+                                      backgroundColor: isConfigured
+                                          ? Colors.white
+                                          : Colors.blue,
+                                      foregroundColor: isConfigured
+                                          ? Colors.blue
+                                          : Colors.white,
                                       elevation: isConfigured ? 0 : 2,
                                       side: isConfigured
                                           ? const BorderSide(color: Colors.blue)
                                           : null,
                                     ),
-                                    icon: const Icon(Icons.camera_alt, size: 18),
-                                    label: Text(isConfigured ? "Edit" : "Record"),
+                                    icon: const Icon(
+                                      Icons.camera_alt,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      isConfigured ? "Edit" : "Record",
+                                    ),
                                     onPressed: () => _recordAction(action),
                                   ),
                                 ),
@@ -288,7 +303,10 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                             children: [
                               const Text(
                                 'Dance Moves',
-                                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const Spacer(),
                               ElevatedButton.icon(
@@ -314,11 +332,18 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                                 padding: const EdgeInsets.all(32.0),
                                 child: Column(
                                   children: [
-                                    Icon(Icons.music_note, size: 64, color: Colors.grey[400]),
+                                    Icon(
+                                      Icons.music_note,
+                                      size: 64,
+                                      color: Colors.grey[400],
+                                    ),
                                     const SizedBox(height: 16),
                                     Text(
                                       'No dance moves created yet',
-                                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -331,7 +356,8 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                               itemCount: _dances.length,
                               itemBuilder: (context, index) {
                                 final dance = _dances[index];
-                                final hasGesture = dance.assignedGesture != null;
+                                final hasGesture =
+                                    dance.assignedGesture != null;
 
                                 return Card(
                                   elevation: 2,
@@ -361,7 +387,8 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                                       ),
                                     ),
                                     subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text('${dance.steps.length} steps'),
                                         if (hasGesture)
@@ -421,9 +448,18 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
                                           value: 'delete',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.delete, size: 20, color: Colors.red),
+                                              Icon(
+                                                Icons.delete,
+                                                size: 20,
+                                                color: Colors.red,
+                                              ),
                                               SizedBox(width: 8),
-                                              Text('Delete', style: TextStyle(color: Colors.red)),
+                                              Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
