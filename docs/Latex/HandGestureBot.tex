@@ -334,16 +334,9 @@ This is necessary to avoid plagiarism assumptions.
 \end{itemize}
 
 
-\subsection{Important Implementation Notes (Bluetooth Fix)}
-A key issue was that the iOS app received the IP address but did not forward it correctly to Flutter.
-This was fixed by connecting iOS callbacks to the Flutter MethodChannel and handling them on the Dart side.
-
-\textbf{Key files involved:}
-\begin{itemize}[leftmargin=1.5cm]
-    \item \texttt{AppDelegate.swift}
-    \item \texttt{BluetoothProvisioningService.swift}
-    \item \texttt{native\_bluetooth\_service.dart}
-\end{itemize}
+%NIKLAS TODO: Please start here if you have anything to add regarding iOS implementation
+\subsection{Important Implementation Notes for iOS}
+iOS specific stuff goes here...
 
 % =================================================
 % APPENDIX
