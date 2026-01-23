@@ -8,6 +8,8 @@ import 'package:flutterapp/services/dance_service.dart';
 import 'package:flutterapp/services/obstacle_sensor_service.dart';
 import 'package:flutterapp/models/dance_move.dart';
 import 'package:flutterapp/models/obstacle_status.dart';
+import 'package:flutterapp/services/dance_music_controller.dart';
+
 
 class CameraView extends StatefulWidget {
   const CameraView({super.key});
@@ -25,6 +27,8 @@ class _CameraViewState extends State<CameraView> {
   final RobotService _robotService = RobotService();
   final DanceService _danceService = DanceService();
   final ObstacleSensorService _obstacleSensorService = ObstacleSensorService();
+  final DanceMusicController _musicController = DanceMusicController();
+
 
   // State
   StreamSubscription? _gestureSubscription;
@@ -112,6 +116,12 @@ class _CameraViewState extends State<CameraView> {
   Future<void> _playDance(DanceMove dance) async {
     _isDancePlaying = true;
 
+    // Start music
+    if (dance.musicPath != null && dance.musicPath!.isNotEmpty) {
+      await _musicController.play(dance.musicPath!);
+    }
+
+
     for (final step in dance.steps) {
       if (!mounted || !_isDancePlaying) break;
 
@@ -130,6 +140,8 @@ class _CameraViewState extends State<CameraView> {
       robotCommand = 'stop';
     });
 
+    // Stop music
+    await _musicController.stop();
     _isDancePlaying = false;
   }
 
@@ -160,6 +172,7 @@ class _CameraViewState extends State<CameraView> {
     _gestureService.dispose();
     _robotService.disconnect();
     _obstacleSensorService.dispose();
+    _musicController.stop();
     super.dispose();
   }
 

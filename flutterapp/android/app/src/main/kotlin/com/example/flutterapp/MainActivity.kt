@@ -19,6 +19,8 @@ import org.json.JSONObject
 import java.util.*
 
 class MainActivity: FlutterActivity() {
+
+    private val DANCE_CHANNEL = "dance_channel"
     private val CAMERA_CHANNEL = "camera_permission"
     private val BLUETOOTH_CHANNEL = "bluetooth_channel"
     private val CAMERA_PERMISSION_CODE = 101
@@ -59,6 +61,34 @@ class MainActivity: FlutterActivity() {
                 }
             } else {
                 result.notImplemented()
+            }
+        }
+
+        //Dance_Channel
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            DANCE_CHANNEL
+        ).setMethodCallHandler { call, result ->
+
+            val store = DanceStore.getInstance(this)
+
+            when (call.method) {
+                "saveDanceMoves" -> {
+                    val json = call.arguments as? String
+                    if (json != null) {
+                        store.saveDanceMoves(json)
+                        result.success(true)
+                    } else {
+                        result.error("ARG_ERROR", "JSON is null", null)
+                    }
+                }
+
+                "loadDanceMoves" -> {
+                    val json = store.loadDanceMoves()
+                    result.success(json)
+                }
+
+                else -> result.notImplemented()
             }
         }
 
@@ -108,12 +138,12 @@ class MainActivity: FlutterActivity() {
 
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val scanner = bluetoothManager.adapter.bluetoothLeScanner
-        
+
         currentScanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, scanResult: ScanResult) {
                 val device = scanResult.device
                 val name = device.name
-                
+
                 // Only notify Flutter if the device is a TurtleBot
                 if (name != null && name.contains("TurtleBot", ignoreCase = true)) {
                     handler.post {
@@ -125,10 +155,10 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
-        
+
         scanner.startScan(currentScanCallback)
-        handler.postDelayed({ 
-            currentScanCallback?.let { 
+        handler.postDelayed({
+            currentScanCallback?.let {
                 scanner.stopScan(it)
                 currentScanCallback = null
             }
@@ -167,8 +197,8 @@ class MainActivity: FlutterActivity() {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 gatt.discoverServices()
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                handler.post { 
-                    bluetoothMethodChannel?.invokeMethod("onStatusUpdate", mapOf("status" to "disconnected")) 
+                handler.post {
+                    bluetoothMethodChannel?.invokeMethod("onStatusUpdate", mapOf("status" to "disconnected"))
                 }
             }
         }
@@ -183,8 +213,8 @@ class MainActivity: FlutterActivity() {
                     descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                     gatt.writeDescriptor(descriptor)
                 }
-                handler.post { 
-                    bluetoothMethodChannel?.invokeMethod("onStatusUpdate", mapOf("status" to "connected")) 
+                handler.post {
+                    bluetoothMethodChannel?.invokeMethod("onStatusUpdate", mapOf("status" to "connected"))
                 }
             }
         }
@@ -210,7 +240,7 @@ class MainActivity: FlutterActivity() {
                 }
                 bluetoothMethodChannel?.invokeMethod("onStatusUpdate", mapOf("status" to status))
             }
-        } catch (e: Exception) { 
+        } catch (e: Exception) {
             Log.e("BLE_PROVISIONING", "Error parsing status JSON: ${e.message}")
         }
     }

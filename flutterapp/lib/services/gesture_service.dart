@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import '../services/dance_service.dart';
+import '../services/dance_executor.dart';
+
 
 class GestureService {
   // Method channel for bi-directional communication
