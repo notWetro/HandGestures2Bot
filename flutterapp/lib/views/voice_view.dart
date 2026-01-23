@@ -66,12 +66,7 @@ class _VoiceViewState extends State<VoiceView> {
 
     final micReady = await _voiceService.initialize();
 
-<<<<<<< HEAD
-    if (mounted)
-      setState(() => _status = "Connecting to Robot... (!! TO IMPLEMENT !!)");
-=======
     if (mounted) setState(() => _status = "Connecting to Robot... ");
->>>>>>> c5d28231397c684aab004f2c3928f3ba4947fe1f
     try {
       await _robotService.connect().timeout(const Duration(seconds: 2));
     } catch (e) {
@@ -116,9 +111,7 @@ class _VoiceViewState extends State<VoiceView> {
       await _voiceService.listen(
         onResult: (text) async {
           if (!mounted) return;
-
-<<<<<<< HEAD
-=======
+        
         setState(() {
           _userSpeech = text;
           _isListening = false;
@@ -129,7 +122,6 @@ class _VoiceViewState extends State<VoiceView> {
         final jsonString = await _aiService.sendCommand(text, personaName: _selectedVoiceName);
         
         if (mounted) {
->>>>>>> c5d28231397c684aab004f2c3928f3ba4947fe1f
           setState(() {
             _userSpeech = text;
             _isListening = false;
@@ -148,7 +140,7 @@ class _VoiceViewState extends State<VoiceView> {
 
           // Speak the Action
           _speakAction(jsonString);
-        },
+        }}
       );
     }
   }
@@ -168,15 +160,9 @@ class _VoiceViewState extends State<VoiceView> {
         if (data.containsKey('response')) {
           String aiSpeech = data['response'];
           debugPrint("AI Says: $aiSpeech");
-<<<<<<< HEAD
-          _ttsService.speak(aiSpeech);
-        }
-
-=======
           _elevenLabsService.speak(aiSpeech, _voices[_selectedVoiceName]!);
         } 
         
->>>>>>> c5d28231397c684aab004f2c3928f3ba4947fe1f
         // Check for "direction" and move robot
         if (data.containsKey('direction')) {
           String direction = data['direction'];
@@ -208,13 +194,6 @@ class _VoiceViewState extends State<VoiceView> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-<<<<<<< HEAD
-            Text(
-              _status,
-              style: const TextStyle(
-                color: Colors.greenAccent,
-                fontWeight: FontWeight.bold,
-=======
             Text(_status, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             // Voice Selector Dropdown
@@ -242,7 +221,6 @@ class _VoiceViewState extends State<VoiceView> {
                     }
                   },
                 ),
->>>>>>> c5d28231397c684aab004f2c3928f3ba4947fe1f
               ),
             ),
             const Spacer(),
