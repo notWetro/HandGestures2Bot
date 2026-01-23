@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutterapp/services/native_bluetooth_service.dart';
+import 'package:flutterapp/services/robot_service.dart';
 
 class BluetoothSetupPage extends StatefulWidget {
   const BluetoothSetupPage({super.key});
@@ -33,13 +34,18 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
     super.initState();
     _loadSavedIp();
 
-    _ipSubscription = _bluetoothService.onIpAddressReceived.listen((ipAddress) {
+    _ipSubscription = _bluetoothService.onIpAddressReceived.listen((ipAddress) async {
       debugPrint('UI: Received IP Address from Robot: $ipAddress');
       if (mounted) {
         setState(() {
           _receivedIpAddress = ipAddress;
         });
-        _bluetoothService.saveIpAddress(ipAddress);
+        
+        await _bluetoothService.saveIpAddress(ipAddress);
+
+        RobotService().setConnection(ipAddress, '8765');
+        RobotService().connect();
+
         _showSuccessDialog(ipAddress);
       }
     });
