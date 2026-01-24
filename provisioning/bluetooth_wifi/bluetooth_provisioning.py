@@ -43,40 +43,14 @@ last_error: Optional[str] = None
 _provision_lock = threading.Lock()
 _provision_thread: Optional[threading.Thread] = None
 
-# Global reference to the BLE peripheral for sending notifications
-_ble_peripheral = None
 
-
-def start_websocket_server(force_restart: bool = False) -> bool:
-    """Start the WebSocket server after WiFi is connected.
-    
-    Args:
-        force_restart: If True, stop existing server and start a new one.
-                      Useful when switching networks.
-    """
+def start_websocket_server() -> bool:
+    """Start the WebSocket server after WiFi is connected."""
     global WEBSOCKET_STARTED, WEBSOCKET_PID
     
-    if WEBSOCKET_STARTED and not force_restart:
+    if WEBSOCKET_STARTED:
         logging.info("WebSocket server already started")
         return True
-    
-    # If force restart, stop existing server first
-    if force_restart and WEBSOCKET_PID is not None:
-        logging.info("🔄 Restarting WebSocket server for network change...")
-        try:
-            # Try to stop the existing server gracefully
-            stop_script = os.path.join(SCRIPT_DIR, "stop_robot.sh")
-            if os.path.exists(stop_script):
-                subprocess.run(["/bin/bash", stop_script], capture_output=True, timeout=10)
-            else:
-                # Kill the process directly
-                os.killpg(os.getpgid(WEBSOCKET_PID), 15)  # SIGTERM
-            import time
-            time.sleep(1)  # Give time for cleanup
-        except Exception as e:
-            logging.warning("Error stopping existing WebSocket server: %s", e)
-        WEBSOCKET_STARTED = False
-        WEBSOCKET_PID = None
     
     try:
         # Find the start_server.sh script
@@ -328,46 +302,6 @@ def get_status_json() -> str:
     return json_str
 
 
-def notify_status_change():
-    """Send a BLE notification to connected clients with the current status."""
-    global _ble_peripheral
-    if _ble_peripheral is None:
-        logging.debug("Cannot notify: BLE peripheral not ready")
-        return
-    
-    try:
-        status_json = get_status_json()
-        status_bytes = list(status_json.encode(ENCODING))
-        
-        # Find the status characteristic in the peripheral's characteristics list
-        # The status characteristic is srv_id=1, chr_id=3
-        status_char = None
-        for char in _ble_peripheral.characteristics:
-            # Check if this is our status characteristic by UUID
-            if hasattr(char, 'uuid') and str(char.uuid).lower() == CHAR_STATUS_UUID.lower():
-                status_char = char
-                break
-        
-        if status_char is None:
-            logging.debug("Status characteristic not found in peripheral")
-            return
-        
-        # Update the characteristic value and send notification
-        status_char.set_value(status_bytes)
-        # PropertiesChanged signal triggers the notification to subscribed clients
-        if status_char.is_notifying:
-            status_char.PropertiesChanged(
-                'org.bluez.GattCharacteristic1',
-                {'Value': status_bytes},
-                []
-            )
-            logging.info("🔔 Sent BLE notification with status: %s", status_json)
-        else:
-            logging.debug("Status characteristic not being notified (no subscribers)")
-    except Exception as e:
-        logging.warning("Failed to send BLE notification: %s", e)
-
-
 def try_provision():
     """Attempt Wi-Fi provisioning if both SSID and password are set."""
     global ssid_value, password_value, status_value, ip_value, last_error
@@ -383,7 +317,6 @@ def try_provision():
 
     def _worker(target_ssid: str, target_password: str) -> None:
         global status_value, ip_value, last_error
-        old_ip = ip_value  # Store the previous IP to detect network changes
         try:
             logging.info("Connecting to Wi-Fi: %s", target_ssid)
             success, reason = connect_wifi(target_ssid, target_password)
@@ -397,31 +330,21 @@ def try_provision():
                     last_error = None
                     logging.info("Provisioning complete: %s -> %s", target_ssid, ip)
                     
-                    # Notify the app about the successful connection with IP
-                    notify_status_change()
-                    
-                    # Start or restart WebSocket server
-                    # Force restart if IP changed (indicates network switch)
-                    network_changed = old_ip is not None and old_ip != ip
-                    if network_changed:
-                        logging.info("Network changed from %s to %s - restarting WebSocket", old_ip, ip)
-                    start_websocket_server(force_restart=network_changed)
+                    # Start WebSocket server now that WiFi is connected
+                    start_websocket_server()
                 else:
                     status_value = "failed"
                     last_error = "Connected but no IPv4 address"
                     logging.warning("Connected but no IPv4 address")
-                    notify_status_change()
             else:
                 status_value = "failed"
                 last_error = reason
                 ip_value = get_wlan_ip() or ip_value
                 logging.warning("Wi-Fi connect failed: %s", reason)
-                notify_status_change()
         except Exception as exc:
             status_value = "failed"
             last_error = str(exc)
             logging.exception("Provisioning worker failed: %s", exc)
-            notify_status_change()
         finally:
             # Allow a future provisioning attempt
             with _provision_lock:
@@ -435,7 +358,6 @@ def try_provision():
             return
         status_value = "connecting"
         last_error = None
-        notify_status_change()  # Notify that we're starting to connect
         _provision_thread = threading.Thread(target=_worker, args=(ssid, password), daemon=True)
         _provision_thread.start()
 
@@ -519,10 +441,8 @@ def main():
     adapter_address = adapters[0].address
     logging.info("Using Bluetooth adapter: %s", adapter_address)
     
-    # Create peripheral - store globally for notifications
-    global _ble_peripheral
+    # Create peripheral
     ble_peripheral = peripheral.Peripheral(adapter_address=adapter_address, local_name=DEVICE_NAME)
-    _ble_peripheral = ble_peripheral
     
     # Add service
     ble_peripheral.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
