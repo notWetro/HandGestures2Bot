@@ -10,7 +10,6 @@ import 'package:flutterapp/models/dance_move.dart';
 import 'package:flutterapp/models/obstacle_status.dart';
 import 'package:flutterapp/services/dance_music_controller.dart';
 
-
 class CameraView extends StatefulWidget {
   const CameraView({super.key});
 
@@ -28,7 +27,6 @@ class _CameraViewState extends State<CameraView> {
   final DanceService _danceService = DanceService();
   final ObstacleSensorService _obstacleSensorService = ObstacleSensorService();
   final DanceMusicController _musicController = DanceMusicController();
-
 
   // State
   StreamSubscription? _gestureSubscription;
@@ -97,7 +95,6 @@ class _CameraViewState extends State<CameraView> {
           );
           await _playDance(dance);
         } else if (!_isDancePlaying) {
-
           debugPrint("➡️ [COMMAND] normal command for gesture '$gesture'");
 
           // Normal gesture command
@@ -125,7 +122,6 @@ class _CameraViewState extends State<CameraView> {
   }
 
   Future<void> _playDance(DanceMove dance) async {
-
     debugPrint("🎬 [PLAY] ENTER _playDance for '${dance.name}'");
     debugPrint("🎬 [PLAY] steps count = ${dance.steps.length}");
     debugPrint("🎬 [PLAY] musicPath = ${dance.musicPath}");
@@ -137,7 +133,6 @@ class _CameraViewState extends State<CameraView> {
       await _musicController.play(dance.musicPath!);
       debugPrint("🎵 [MUSIC] started");
     }
-
 
     for (final step in dance.steps) {
       debugPrint(
@@ -413,7 +408,7 @@ class _CameraViewState extends State<CameraView> {
           ),
         if (_currentObstacleStatus!.isSectorBlocked('behind'))
           Positioned(
-            bottom: 16,
+            top: 16,
             left: 0,
             right: 0,
             child: Center(
