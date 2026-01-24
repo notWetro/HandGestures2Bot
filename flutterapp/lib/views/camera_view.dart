@@ -73,7 +73,8 @@ class _CameraViewState extends State<CameraView> {
     _gestureSubscription = _gestureService.onGesture.listen((gesture) async {
       if (mounted) {
         // Check if this gesture is assigned to a dance
-        final dance = await _danceService.getDanceByGesture(gesture);
+        final normalizedGesture = gesture.trim().toLowerCase();
+        final dance = await _danceService.getDanceByGesture(normalizedGesture);
 
         if (dance != null && !_isDancePlaying) {
           // Play dance sequence

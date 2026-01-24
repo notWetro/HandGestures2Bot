@@ -36,7 +36,8 @@ class _SaveGestureViewState extends State<SaveGestureView> {
           ),
         );
         // Pop the screen, returning the new gesture name
-        Navigator.pop(context, message);
+        final normalized = message.toLowerCase().trim();
+        Navigator.pop(context, normalized);
       }
     });
   }
@@ -50,7 +51,7 @@ class _SaveGestureViewState extends State<SaveGestureView> {
   }
 
   Future<void> _saveGesture() async {
-    final String name = _textController.text.trim();
+    final String name = _textController.text.trim().toLowerCase();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a gesture name first!')),
