@@ -3,8 +3,8 @@
 TurtleBot3 Safety Scanner Node (ROS 2 Humble)
 
 This node evaluates LaserScan sensor data from the robot's LiDAR,
-logs the minimum distances in three front sectors, and automatically
-BLOCKS FORWARD MOTION if any obstacle is detected within the safety distance.
+logs the minimum distances in all sectors (front and behind), and automatically
+BLOCKS MOTION if any obstacle is detected within the safety distance.
 
 Architecture:
 - Subscribes: /scan (sensor_msgs/msg/LaserScan)
@@ -12,15 +12,19 @@ Architecture:
 - Publishes: /cmd_vel (geometry_msgs/msg/Twist) - filtered commands
 
 Safety Behavior:
-- If any sector (Left, Center, Right) detects an obstacle within 25 cm,
+- If front sectors (Left, Center, Right) detect an obstacle within 25 cm,
   FORWARD motion (positive linear.x) is blocked
-- Backward and turning motion is always allowed
+- If behind sector detects an obstacle within 25 cm,
+  BACKWARD motion (negative linear.x) is blocked
+- Turning motion is always allowed
+- Beeps when obstacles are detected (front or behind)
 - Logging continues every 2 seconds
 
-Sectors (total 45° forward-facing area):
+Sectors:
 - Left:   +7.5° to +22.5° (15° sector)
 - Center: -7.5° to +7.5°  (15° sector)
 - Right:  -22.5° to -7.5° (15° sector)
+- Behind: +157.5° to -157.5° (45° sector at rear)
 
 IMPORTANT: Commands should be sent to /cmd_vel_in, NOT /cmd_vel directly!
 """
@@ -111,8 +115,9 @@ class SafetyScanner(Node):
         self.scan_timeout_sec = float(self.get_parameter("scan_timeout_sec").value)
         self.scan_topic = str(self.get_parameter("scan_topic").value)
         
-        # Track obstacle state
-        self.obstacle_detected: bool = False
+        # Track obstacle state (front and behind)
+        self.obstacle_detected: bool = False  # Front obstacle
+        self.obstacle_behind_detected: bool = False  # Behind obstacle
         self.last_obstacle_sector: str = ""
 
         # -------------------------------------------------------------------------
@@ -242,32 +247,47 @@ class SafetyScanner(Node):
         right_m = self.get_sector_min_distance(
             self.latest_scan, self.RIGHT_SECTOR_MIN_DEG, self.RIGHT_SECTOR_MAX_DEG
         )
-        behind_m = self.get_sector_min_distance(
-            self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
-        )
-        behind_m = self.get_sector_min_distance(
-            self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
-        )
 
         candidates = [d for d in (left_m, center_m, right_m) if d is not None]
         if not candidates:
             return None
         return min(candidates)
 
+    def _get_behind_min_distance(self) -> Optional[float]:
+        """Get the minimum distance in the behind sector."""
+        if self.latest_scan is None:
+            return None
+
+        behind_m = self.get_sector_min_distance(
+            self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
+        )
+        return behind_m
+
     def beep_timer_callback(self) -> None:
-        """Emit beeps depending on closest obstacle distance in front sectors."""
+        """Emit beeps depending on closest obstacle distance (front or behind)."""
         if self.sound_client is None:
             return
 
         front_min_m = self._get_front_min_distance()
-        if front_min_m is None:
+        behind_min_m = self._get_behind_min_distance()
+        
+        # Use the minimum of front and behind distances for beeping
+        min_distance_m = None
+        if front_min_m is not None and behind_min_m is not None:
+            min_distance_m = min(front_min_m, behind_min_m)
+        elif front_min_m is not None:
+            min_distance_m = front_min_m
+        elif behind_min_m is not None:
+            min_distance_m = behind_min_m
+        
+        if min_distance_m is None:
             self._far_beep_done = False
             return
 
         now_s = time.monotonic()
 
         # Very close: fast beeps
-        if front_min_m <= self.BEEP_NEAR_M:
+        if min_distance_m <= self.BEEP_NEAR_M:
             if (now_s - self._last_beep_time_s) >= self.BEEP_NEAR_INTERVAL_S:
                 self._call_beep()
                 self._last_beep_time_s = now_s
@@ -275,7 +295,7 @@ class SafetyScanner(Node):
             return
 
         # Close: slower beeps
-        if front_min_m <= self.BEEP_MID_M:
+        if min_distance_m <= self.BEEP_MID_M:
             if (now_s - self._last_beep_time_s) >= self.BEEP_MID_INTERVAL_S:
                 self._call_beep()
                 self._last_beep_time_s = now_s
@@ -283,7 +303,7 @@ class SafetyScanner(Node):
             return
 
         # Far: single beep once when entering this band
-        if front_min_m <= self.BEEP_FAR_M:
+        if min_distance_m <= self.BEEP_FAR_M:
             if not self._far_beep_done:
                 self._call_beep()
                 self._last_beep_time_s = now_s
@@ -356,6 +376,9 @@ class SafetyScanner(Node):
         right_m = self.get_sector_min_distance(
             self.latest_scan, self.RIGHT_SECTOR_MIN_DEG, self.RIGHT_SECTOR_MAX_DEG
         )
+        behind_m = self.get_sector_min_distance(
+            self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
+        )
 
         # Check if any sector has obstacle within safety distance
         obstacle_sectors = []
@@ -378,17 +401,27 @@ class SafetyScanner(Node):
 
         if behind_m is not None:
             distances["behind"] = round(behind_m * 100, 1)
+            if behind_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("behind")
 
         was_detected = self.obstacle_detected
-        self.obstacle_detected = len(obstacle_sectors) > 0
+        was_behind_detected = self.obstacle_behind_detected
+        
+        # Front obstacle = any of left, center, right
+        front_sectors = [s for s in obstacle_sectors if s in ("left", "center", "right")]
+        self.obstacle_detected = len(front_sectors) > 0
+        
+        # Behind obstacle
+        self.obstacle_behind_detected = "behind" in obstacle_sectors
 
-        # Publish status on state change
-        if self.obstacle_detected != was_detected:
+        # Publish status on any state change
+        if self.obstacle_detected != was_detected or self.obstacle_behind_detected != was_behind_detected:
             import json
             status_msg = String()
             status_msg.data = json.dumps({
                 "type": "obstacle_status",
                 "blocked": self.obstacle_detected,
+                "blocked_behind": self.obstacle_behind_detected,
                 "sectors": obstacle_sectors,
                 "distances": distances,
                 "safety_distance_cm": self.SAFETY_DISTANCE_M * 100
@@ -396,23 +429,29 @@ class SafetyScanner(Node):
             self.obstacle_status_pub.publish(status_msg)
 
         # Log state changes
-        if self.obstacle_detected:
+        if self.obstacle_detected or self.obstacle_behind_detected:
             sector_str = ", ".join([f"{s.upper()} ({distances.get(s, 0):.1f}cm)" for s in obstacle_sectors])
-            if not was_detected or sector_str != self.last_obstacle_sector:
+            if not was_detected and not was_behind_detected or sector_str != self.last_obstacle_sector:
+                blocked_directions = []
+                if self.obstacle_detected:
+                    blocked_directions.append("forward")
+                if self.obstacle_behind_detected:
+                    blocked_directions.append("backward")
                 self.get_logger().warn(
-                    f"⚠️ OBSTACLE DETECTED in {sector_str}! Blocking forward motion."
+                    f"⚠️ OBSTACLE DETECTED in {sector_str}! Blocking {' and '.join(blocked_directions)} motion."
                 )
                 self.last_obstacle_sector = sector_str
-        elif was_detected:
-            self.get_logger().info("✓ Obstacle cleared. Forward motion allowed.")
+        elif was_detected or was_behind_detected:
+            self.get_logger().info("✓ Obstacle cleared. All motion allowed.")
             self.last_obstacle_sector = ""
 
     def cmd_vel_in_callback(self, msg: Twist) -> None:
         """
         Filter incoming velocity commands.
         
-        If obstacle detected, blocks forward motion (positive linear.x).
-        Backward motion and turning are always allowed.
+        If obstacle detected in front, blocks forward motion (positive linear.x).
+        If obstacle detected behind, blocks backward motion (negative linear.x).
+        Turning is always allowed.
         """
         # Ensure fail-safe is applied even if scan never arrives (real robot misconfig).
         self._update_obstacle_state()
@@ -424,8 +463,11 @@ class SafetyScanner(Node):
         output_cmd.angular.y = msg.angular.y
         output_cmd.angular.z = msg.angular.z  # Turning always allowed
 
+        # Block forward motion if front obstacle detected
         if self.obstacle_detected and msg.linear.x > 0.0:
-            # Block forward motion
+            output_cmd.linear.x = 0.0
+        # Block backward motion if behind obstacle detected
+        elif self.obstacle_behind_detected and msg.linear.x < 0.0:
             output_cmd.linear.x = 0.0
         else:
             # Allow the command
@@ -469,6 +511,9 @@ class SafetyScanner(Node):
         )
         right_m = self.get_sector_min_distance(
             self.latest_scan, self.RIGHT_SECTOR_MIN_DEG, self.RIGHT_SECTOR_MAX_DEG
+        )
+        behind_m = self.get_sector_min_distance(
+            self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
         )
 
         # Convert to centimeters and format output
