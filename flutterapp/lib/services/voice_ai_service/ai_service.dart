@@ -8,9 +8,10 @@ class AiService {
 
   INSTRUCTIONS:
   1. Analyze the user's voice command.
-  2. Output a JSON object with two fields:
+  2. Output a JSON object with these fields:
      - "direction": The movement (forward, backward, left, right, stop).
      - "response": A short (max 5 words), somewhat humorous reply to the user.
+     - "dance": Optional. If the user wants to dance or mentions a dance name, set this to the dance name (e.g., "Spin Dance", "Wave Dance") or "start" if no specific name is given.
   ''';
 
   Future<void> initialize() async {
