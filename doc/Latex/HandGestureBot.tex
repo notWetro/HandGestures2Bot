@@ -118,31 +118,31 @@ This section provides a high-level overview of the main features implemented in 
 Detailed scenarios and interaction flows are described in the next section.
 
 \begin{itemize}[leftmargin=1.5cm]
-	
+
 	\item \textbf{Hand-gesture based robot control (Android):}
 	Real-time gesture recognition using the camera and MediaPipe.
-	
+
 	\item \textbf{Voice-based robot control:}
 	Speech-to-text, AI command interpretation, and optional TTS feedback.
-	
+
 	\item \textbf{Real-time robot control via WebSocket over Wi-Fi:}
 	Sends JSON movement commands to the TurtleBot (\texttt{ws://<robot-ip>:8765}).
-	
+
 	\item \textbf{Supported movement commands:}
 	Forward, backward, left, right, stop (unknown commands fall back to stop).
-	
+
 	\item \textbf{Safety obstacle filtering using LiDAR:}
 	Blocks unsafe forward motion and prevents collisions.
-	
+
 	\item \textbf{Live obstacle status feedback to the mobile app:}
 	Obstacle status updates are streamed back via WebSocket.
-	
+
 	\item \textbf{Bluetooth Low Energy (BLE) Wi-Fi provisioning:}
 	Sends SSID/password and receives the robot IP address for Wi-Fi control.
-	
+
 	\item \textbf{Dance sequences / multi-step routines:}
 	Gestures can trigger predefined movement sequences.
-	
+
 \end{itemize}
 
 \newpage
@@ -336,7 +336,27 @@ This is necessary to avoid plagiarism assumptions.
 
 %NIKLAS TODO: Please start here if you have anything to add regarding iOS implementation
 \subsection{Important Implementation Notes for iOS}
-iOS specific stuff goes here...
+
+During the process, it has been decided that we will stop the development of the iOS app and
+concentrate exclusively on the Android platform. This approach was necessitated by basic technological incompatibilities
+between \textit{MediaPipe} and \textit{Gemma} on iOS.
+
+Additionally, Gemma internally depends on \textit{MediaPipe Tasks} and hence comes bundled with preincluded native MediaPipe integration.
+Specifically with regards to an iOS ecosystem, MediaPipe is very sensitive to multiple or parallel integrations
+with native C++, Protobuf, and Swift modules. In our project, MediaPipe was already used for camera-based gesture recognition.
+Introducing Gemma in addition to this existing setup resulted in severe linker- and module conflicts, manifesting in
+unresolved native symbols and build-time errors.
+
+Though a similar problem with Android could be addressed through selective omission of certain MediaPipe modules,
+its counterpart is absent on iOS devices. A possible solution would have required replacing or extensively restructuring
+the entire existing MediaPipe communication layer so that only the MediaPipe version bundled with Gemma remained in use.
+This would have implied a fundamental change to the overall project architecture, particularly affecting the camera pipeline,
+frame processing, and native iOS integration.
+
+The required implementation and testing effort would have been disproportionate to the scope of the project and
+would have introduced a significant risk of additional errors and development delays. For these reasons, the iOS app was dropped,
+and development efforts were concentrated on Android, where the coexistence of MediaPipe and
+Gemma can be implemented in a technically stable and reliable manner.
 
 % =================================================
 % APPENDIX
