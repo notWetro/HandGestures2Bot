@@ -43,6 +43,9 @@ last_error: Optional[str] = None
 _provision_lock = threading.Lock()
 _provision_thread: Optional[threading.Thread] = None
 
+# BLE peripheral reference for sending notifications
+_ble_peripheral: Optional[peripheral.Peripheral] = None
+
 
 def start_websocket_server() -> bool:
     """Start the WebSocket server after WiFi is connected."""
@@ -302,6 +305,27 @@ def get_status_json() -> str:
     return json_str
 
 
+def notify_status_update():
+    """Send BLE notification to connected clients with current status."""
+    global _ble_peripheral
+    if _ble_peripheral is None:
+        logging.warning("Cannot notify: BLE peripheral not initialized")
+        return
+    
+    try:
+        status_bytes = list(get_status_json().encode(ENCODING))
+        # Find the status characteristic (chr_id=3) and update its value
+        # This triggers PropertiesChanged signal which sends BLE notification
+        for char in _ble_peripheral.characteristics:
+            if char.path.endswith('char0003'):
+                char.set_value(status_bytes)
+                logging.info("📤 BLE Notification sent with status update")
+                return
+        logging.warning("Status characteristic not found")
+    except Exception as e:
+        logging.error("Failed to send BLE notification: %s", e)
+
+
 def try_provision():
     """Attempt Wi-Fi provisioning if both SSID and password are set."""
     global ssid_value, password_value, status_value, ip_value, last_error
@@ -330,21 +354,27 @@ def try_provision():
                     last_error = None
                     logging.info("Provisioning complete: %s -> %s", target_ssid, ip)
                     
+                    # Send BLE notification with IP address to the app
+                    notify_status_update()
+                    
                     # Start WebSocket server now that WiFi is connected
                     start_websocket_server()
                 else:
                     status_value = "failed"
                     last_error = "Connected but no IPv4 address"
                     logging.warning("Connected but no IPv4 address")
+                    notify_status_update()
             else:
                 status_value = "failed"
                 last_error = reason
                 ip_value = get_wlan_ip() or ip_value
                 logging.warning("Wi-Fi connect failed: %s", reason)
+                notify_status_update()
         except Exception as exc:
             status_value = "failed"
             last_error = str(exc)
             logging.exception("Provisioning worker failed: %s", exc)
+            notify_status_update()
         finally:
             # Allow a future provisioning attempt
             with _provision_lock:
@@ -441,8 +471,10 @@ def main():
     adapter_address = adapters[0].address
     logging.info("Using Bluetooth adapter: %s", adapter_address)
     
-    # Create peripheral
+    # Create peripheral and store globally for notifications
+    global _ble_peripheral
     ble_peripheral = peripheral.Peripheral(adapter_address=adapter_address, local_name=DEVICE_NAME)
+    _ble_peripheral = ble_peripheral
     
     # Add service
     ble_peripheral.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
@@ -477,7 +509,7 @@ def main():
         chr_id=3,
         uuid=CHAR_STATUS_UUID,
         value=list(get_status_json().encode(ENCODING)),
-        notifying=False,
+        notifying=True,
         flags=['read', 'notify'],
         read_callback=read_status,
     )
