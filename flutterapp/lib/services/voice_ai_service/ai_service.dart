@@ -14,7 +14,7 @@ class AiService {
   ''';
 
   Future<void> initialize() async {
-    await FlutterGemma.installModel(
+    await FlutterGemma.installModel( 
       modelType: ModelType.gemmaIt,
     ).fromAsset('assets/llm/gemma3-1B-it-int4.task').install();
 
