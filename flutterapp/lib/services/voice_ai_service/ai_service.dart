@@ -9,7 +9,7 @@ class AiService {
   INSTRUCTIONS:
   1. Analyze the user's voice command.
   2. Output a JSON object with two fields:
-     - "direction": The movement (forward, backward, left, right, stop).
+     - "direction": The movement is one of the following: (forward, backward, left, right, stop).
      - "response": A short (max 5 words), somewhat humorous reply to the user.
   ''';
 
