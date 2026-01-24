@@ -29,14 +29,15 @@ class _SaveGestureViewState extends State<SaveGestureView> {
     // Listen for the native side to confirm the save was successful
     _saveSubscription = _gestureService.onSaveSuccess.listen((message) {
       if (mounted) {
+        final gestureName = _textController.text.trim();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gesture "$message" saved successfully!'),
+            content: Text('Gesture "$gestureName" saved successfully!'),
             backgroundColor: Colors.green,
           ),
         );
-        // Pop the screen, returning the new gesture name
-        Navigator.pop(context, message);
+        // Pop the screen, returning the actual gesture name entered by user
+        Navigator.pop(context, gestureName);
       }
     });
   }
