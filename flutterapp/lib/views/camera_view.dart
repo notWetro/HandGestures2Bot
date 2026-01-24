@@ -71,12 +71,19 @@ class _CameraViewState extends State<CameraView> {
 
     // Start listening to the gesture service's stream FIRST
     _gestureSubscription = _gestureService.onGesture.listen((gesture) async {
+      debugPrint("📸 [GESTURE] received: '$gesture'");
+      debugPrint("📸 [STATE] _isDancePlaying = $_isDancePlaying");
+
       if (mounted) {
         // Check if this gesture is assigned to a dance
-        final normalizedGesture = gesture.trim().toLowerCase();
-        final dance = await _danceService.getDanceByGesture(normalizedGesture);
+        final dance = await _danceService.getDanceByGesture(gesture);
+
+        debugPrint(
+          "🎵 [LOOKUP] dance = ${dance?.name}, assignedGesture = ${dance?.assignedGesture}",
+        );
 
         if (dance != null && !_isDancePlaying) {
+          debugPrint("🔥 [TRIGGER] starting dance '${dance.name}'");
           // Play dance sequence
           setState(() {
             detectedGesture = gesture;
@@ -90,6 +97,9 @@ class _CameraViewState extends State<CameraView> {
           );
           await _playDance(dance);
         } else if (!_isDancePlaying) {
+
+          debugPrint("➡️ [COMMAND] normal command for gesture '$gesture'");
+
           // Normal gesture command
           String newCommand = _mapGestureToCommand(gesture);
           setState(() {
@@ -115,15 +125,25 @@ class _CameraViewState extends State<CameraView> {
   }
 
   Future<void> _playDance(DanceMove dance) async {
+
+    debugPrint("🎬 [PLAY] ENTER _playDance for '${dance.name}'");
+    debugPrint("🎬 [PLAY] steps count = ${dance.steps.length}");
+    debugPrint("🎬 [PLAY] musicPath = ${dance.musicPath}");
+
     _isDancePlaying = true;
 
     // Start music
     if (dance.musicPath != null && dance.musicPath!.isNotEmpty) {
       await _musicController.play(dance.musicPath!);
+      debugPrint("🎵 [MUSIC] started");
     }
 
 
     for (final step in dance.steps) {
+      debugPrint(
+        "🤖 [STEP] sending command '${step.movement}' for ${step.durationMs}ms",
+      );
+
       if (!mounted || !_isDancePlaying) break;
 
       _robotService.sendCommand(step.movement);
@@ -136,6 +156,7 @@ class _CameraViewState extends State<CameraView> {
     }
 
     // Stop at the end
+    debugPrint("🛑 [PLAY] stopping robot & music");
     _robotService.sendCommand('stop');
     setState(() {
       robotCommand = 'stop';
@@ -143,6 +164,7 @@ class _CameraViewState extends State<CameraView> {
 
     // Stop music
     await _musicController.stop();
+    debugPrint("🏁 [PLAY] FINISHED dance '${dance.name}'");
     _isDancePlaying = false;
   }
 
