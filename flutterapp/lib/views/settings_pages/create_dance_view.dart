@@ -33,6 +33,8 @@ class _CreateDanceViewState extends State<CreateDanceView> {
     if (widget.existingDance != null) {
       _nameController.text = widget.existingDance!.name;
       _steps.addAll(widget.existingDance!.steps);
+      _recordedGestureName = widget.existingDance!.assignedGesture;
+      _selectedMusicPath = widget.existingDance!.musicPath;
     }
   }
 
