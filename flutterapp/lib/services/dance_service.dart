@@ -62,11 +62,27 @@ class DanceService {
   }
 
   Future<DanceMove?> getDanceByGesture(String gesture) async {
-    final dances = await loadDanceMoves();
-    try {
-      return dances.firstWhere((d) => d.assignedGesture == gesture);
-    } catch (e) {
-      return null;
-    }
+  final dances = await loadDanceMoves();
+
+  debugPrint("🧪 [DANCES COUNT] ${dances.length}");
+  for (final d in dances) {
+    debugPrint(
+      "🧾 Dance='${d.name}', assignedGesture='${d.assignedGesture}'",
+    );
   }
+
+  final normalized = gesture.trim().toLowerCase();
+
+  try {
+    return dances.firstWhere(
+      (d) =>
+          d.assignedGesture != null &&
+          d.assignedGesture!.trim().toLowerCase() == normalized,
+    );
+  } catch (e) {
+    debugPrint("❌ [NO MATCH] for '$gesture'");
+    return null;
+  }
+}
+
 }

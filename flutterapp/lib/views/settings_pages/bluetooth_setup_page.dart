@@ -34,13 +34,15 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
     super.initState();
     _loadSavedIp();
 
-    _ipSubscription = _bluetoothService.onIpAddressReceived.listen((ipAddress) async {
+    _ipSubscription = _bluetoothService.onIpAddressReceived.listen((
+      ipAddress,
+    ) async {
       debugPrint('UI: Received IP Address from Robot: $ipAddress');
       if (mounted) {
         setState(() {
           _receivedIpAddress = ipAddress;
         });
-        
+
         await _bluetoothService.saveIpAddress(ipAddress);
 
         RobotService().setConnection(ipAddress, '8765');
@@ -115,7 +117,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
 
       if (mounted && success) {
         // Wait a bit to see if any devices are found via the stream
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 7));
         if (_devices.isEmpty && mounted) {
           _showInfoDialog(
             "No Devices Found",

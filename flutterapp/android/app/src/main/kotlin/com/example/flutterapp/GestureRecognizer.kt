@@ -62,6 +62,18 @@ class GestureRecognizer(private val context: Context) {
         return if (bestScore < MATCH_THRESHOLD) bestMatchName else "UNKNOWN"
     }
 
+    fun deleteGesture(name: String) {
+        val removed = templates.removeAll { it.name == name }
+
+        if (removed) {
+            Log.d("GestureRecognizer", "Deleted gesture '$name'")
+            saveToStorage()
+        } else {
+            Log.d("GestureRecognizer", "Gesture '$name' not found")
+        }
+    }
+
+
     // --- STORAGE LOGIC ---
 
     private fun saveToStorage() {

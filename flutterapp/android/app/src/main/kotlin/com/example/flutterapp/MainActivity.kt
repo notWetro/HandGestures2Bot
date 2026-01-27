@@ -38,8 +38,14 @@ class MainActivity: FlutterActivity() {
     private val PASS_UUID = UUID.fromString("12345678-1234-5678-1234-56789abcdef2")
     private val STATUS_UUID = UUID.fromString("12345678-1234-5678-1234-56789abcdef3")
 
+    lateinit var gestureRecognizer: GestureRecognizer
+
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        gestureRecognizer = GestureRecognizer(this)
+
 
         // REGISTER FACTORY with 'this' (Activity) and 'binaryMessenger'
         flutterEngine
@@ -91,6 +97,31 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        // Gesture Channel
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "gesture_channel"
+        ).setMethodCallHandler { call, result ->
+
+            when (call.method) {
+
+                "deleteGesture" -> {
+                    val name = call.arguments as? String
+                    if (name != null) {
+                        gestureRecognizer.deleteGesture(name)
+                        Log.d("GESTURE", "Deleted gesture in realtime: $name")
+                        result.success(true)
+                    } else {
+                        result.error("ARG_ERROR", "Gesture name is null", null)
+                    }
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+
+
 
         // Bluetooth Provisioning Channel
         bluetoothMethodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BLUETOOTH_CHANNEL)

@@ -107,7 +107,7 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
   }
 
   // Delete a dance
-  void _deleteDance(DanceMove dance) async {
+  Future<void> _deleteDance(DanceMove dance) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -127,10 +127,30 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
       ),
     );
 
-    if (confirmed == true) {
-      await _danceService.deleteDanceMove(dance.id);
-      _fetchDances();
+    if (confirmed != true) return;
+
+    final gestureName = dance.assignedGesture;
+
+    // 1️⃣ Gesture löschen + UI sofort updaten
+    if (gestureName != null && gestureName.isNotEmpty) {
+      debugPrint("🧹 [DELETE] Deleting gesture FIRST: $gestureName");
+
+      await _gestureService.deleteGesture(gestureName);
+
+      setState(() {
+        _savedGestures.remove(gestureName);
+      });
+
+      debugPrint("✅ [DELETE] Gesture removed from UI state");
     }
+
+    // 2️⃣ Dance löschen
+    await _danceService.deleteDanceMove(dance.id);
+    debugPrint("🗑️ [DELETE] Dance deleted: ${dance.id}");
+
+    // 3️⃣ Rest neu laden (safe)
+    await _fetchDances();
+    await _fetchGestures();
   }
 
   // Assign gesture to dance
