@@ -34,13 +34,15 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
     super.initState();
     _loadSavedIp();
 
-    _ipSubscription = _bluetoothService.onIpAddressReceived.listen((ipAddress) async {
+    _ipSubscription = _bluetoothService.onIpAddressReceived.listen((
+      ipAddress,
+    ) async {
       debugPrint('UI: Received IP Address from Robot: $ipAddress');
       if (mounted) {
         setState(() {
           _receivedIpAddress = ipAddress;
         });
-        
+
         await _bluetoothService.saveIpAddress(ipAddress);
 
         RobotService().setConnection(ipAddress, '8765');

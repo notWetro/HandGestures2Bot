@@ -55,12 +55,11 @@ class ObstacleVisualizationWidget extends StatelessWidget {
   }
 
   Widget _buildSensorRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Column(
       children: [
-        _buildSectorIndicator('left', 'Links'),
-        _buildSectorIndicator('center', 'Mitte'),
-        _buildSectorIndicator('right', 'Rechts'),
+        _buildSectorIndicator('center', 'Vorne'),
+        const SizedBox(height: 16),
+        _buildSectorIndicator('behind', 'Hinten'),
       ],
     );
   }
