@@ -123,25 +123,23 @@ class _VoiceViewState extends State<VoiceView> {
           _status = "🤔 Processing...";
         });
 
-        // Get JSON String from AI
-        final jsonString = await _aiService.sendCommand(text, personaName: _selectedVoiceName);
-        
+        // Load available dances
+        final dances = await _danceService.loadDanceMoves();
+        final danceNames = dances.map((d) => d.name).toList();
+
+        // Get JSON String from AI with dance names
+        final jsonString = await _aiService.sendCommand(
+          text, 
+          personaName: _selectedVoiceName,
+          availableDances: danceNames,
+        );
+
         if (mounted) {
           setState(() {
-            _userSpeech = text;
-            _isListening = false;
-            _status = "Processing...";
+            _aiResponse = jsonString;
+            _status = "COMMAND EXECUTED";
           });
-
-          // Get JSON String from AI
-          final jsonString = await _aiService.sendCommand(text);
-
-          if (mounted) {
-            setState(() {
-              _aiResponse = jsonString;
-              _status = "COMMAND EXECUTED";
-            });
-          }
+        }
 
           // Speak the Action
           _speakAction(jsonString);
