@@ -392,15 +392,9 @@ class _CameraViewState extends State<CameraView> {
   Widget _buildObstacleWarnings() {
     if (_currentObstacleStatus == null) return const SizedBox.shrink();
 
-    final centerBlocked = _currentObstacleStatus!.isSectorBlocked('center') ||
-        (_currentObstacleStatus!.getDistance('center') ?? 999) < _currentObstacleStatus!.safetyDistanceCm;
-    
-    final behindBlocked = _currentObstacleStatus!.isSectorBlocked('behind') ||
-        (_currentObstacleStatus!.getDistance('behind') ?? 999) < _currentObstacleStatus!.safetyDistanceCm;
-
     return Stack(
       children: [
-        if (centerBlocked)
+        if (_currentObstacleStatus!.isSectorBlocked('center'))
           Positioned(
             top: 16,
             left: 0,
@@ -412,7 +406,7 @@ class _CameraViewState extends State<CameraView> {
               ),
             ),
           ),
-        if (behindBlocked)
+        if (_currentObstacleStatus!.isSectorBlocked('behind'))
           Positioned(
             top: 16,
             left: 0,
