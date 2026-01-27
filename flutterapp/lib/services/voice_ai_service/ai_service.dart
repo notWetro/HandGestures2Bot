@@ -25,7 +25,7 @@ class AiService {
     );
   }
 
-  Future<String> sendCommand(String text, {String? personaName, List<String>? availableDances}) async {
+  Future<String> sendCommand(String text, {String? personaName}) async {
     if (_brain == null) return '{"error": "AI not ready"}';
 
     try {
@@ -38,9 +38,6 @@ class AiService {
       String currentPrompt = _systemPrompt;
       if (personaName != null) {
         currentPrompt += "\n  3. The 'response' text MUST be in the style/personality of $personaName.";
-      }
-      if (availableDances != null && availableDances.isNotEmpty) {
-        currentPrompt += "\n  4. Available dance moves: ${availableDances.join(', ')}. If user mentions any of these or wants to dance, set 'dance' field to the exact dance name.";
       }
 
       // Combine personality + user command
