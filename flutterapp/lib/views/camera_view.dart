@@ -401,7 +401,7 @@ class _CameraViewState extends State<CameraView> {
             right: 0,
             child: Center(
               child: _buildWarningBadge(
-                'OBJEKT VORNE',
+                'OBJECT IN FRONT',
                 _currentObstacleStatus!.getDistance('center'),
               ),
             ),
@@ -413,7 +413,7 @@ class _CameraViewState extends State<CameraView> {
             right: 0,
             child: Center(
               child: _buildWarningBadge(
-                'OBJEKT HINTEN',
+                'OBJECT BEHIND',
                 _currentObstacleStatus!.getDistance('behind'),
               ),
             ),
