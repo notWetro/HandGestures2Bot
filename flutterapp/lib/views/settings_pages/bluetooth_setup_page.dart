@@ -117,7 +117,7 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
 
       if (mounted && success) {
         // Wait a bit to see if any devices are found via the stream
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 7));
         if (_devices.isEmpty && mounted) {
           _showInfoDialog(
             "No Devices Found",
