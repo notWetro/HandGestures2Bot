@@ -130,7 +130,7 @@ class _VoiceViewState extends State<VoiceView> {
 
           // Speak the Action
           _speakAction(jsonString);
-        }}
+        }
       );
     }
   }
