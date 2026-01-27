@@ -80,4 +80,12 @@ class GestureService {
     _gestureController.close();
     _saveSuccessController.close();
   }
+
+  Future<void> deleteGesture(String name) async {
+    try {
+      await _channel.invokeMethod('deleteGesture', name);
+    } on PlatformException catch (e) {
+      debugPrint("Failed to delete gesture '$name': ${e.message}");
+    }
+  }
 }

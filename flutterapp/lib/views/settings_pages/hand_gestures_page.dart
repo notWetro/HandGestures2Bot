@@ -127,10 +127,18 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
       ),
     );
 
-    if (confirmed == true) {
-      await _danceService.deleteDanceMove(dance.id);
-      _fetchDances();
-    }
+    if (confirmed != true) return;
+
+  // Gesture mit löschen
+  if (dance.assignedGesture != null) {
+    await _gestureService.deleteGesture(dance.assignedGesture!);
+  }
+
+  // Dance löschen
+  await _danceService.deleteDanceMove(dance.id);
+
+  _fetchDances();
+  _fetchGestures();
   }
 
   // Assign gesture to dance
