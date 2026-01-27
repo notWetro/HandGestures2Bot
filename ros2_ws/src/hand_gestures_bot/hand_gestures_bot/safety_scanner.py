@@ -420,8 +420,7 @@ class SafetyScanner(Node):
             status_msg = String()
             status_msg.data = json.dumps({
                 "type": "obstacle_status",
-                "blocked": self.obstacle_detected,
-                "blocked_behind": self.obstacle_behind_detected,
+                "blocked": self.obstacle_detected or self.obstacle_behind_detected,
                 "sectors": obstacle_sectors,
                 "distances": distances,
                 "safety_distance_cm": self.SAFETY_DISTANCE_M * 100
@@ -541,13 +540,15 @@ class SafetyScanner(Node):
 
         if behind_m is not None:
             distances["behind"] = round(behind_m * 100, 1)
+            if behind_m < self.SAFETY_DISTANCE_M:
+                obstacle_sectors.append("behind")
 
         # Publish status EVERY timer tick (every 2 seconds)
         import json
         status_msg = String()
         status_msg.data = json.dumps({
             "type": "obstacle_status",
-            "blocked": self.obstacle_detected,
+            "blocked": self.obstacle_detected or self.obstacle_behind_detected,
             "sectors": obstacle_sectors,
             "distances": distances,
             "safety_distance_cm": self.SAFETY_DISTANCE_M * 100,

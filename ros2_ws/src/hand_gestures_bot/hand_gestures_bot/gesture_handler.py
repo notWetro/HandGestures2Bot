@@ -9,7 +9,7 @@ class MovementHandler:
             self.bot.get_logger().info("Movement: forward → Moving Forward")
             self.bot.move_forward()
 
-        elif movement in {"back", "backward", "reverse", "rueckwaerts", "ruckwarts", "rückwärts", "rückwaerts"}:
+        elif movement in {"back", "backward", "reverse", "rueckwaerts", "ruckwarts", "rückwärts", "rückwaerts", "backwards"}:
             self.bot.get_logger().info("Movement: back → Moving Backward")
             self.bot.move_backward()
 
