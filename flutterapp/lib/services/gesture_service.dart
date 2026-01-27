@@ -83,9 +83,19 @@ class GestureService {
 
   Future<void> deleteGesture(String name) async {
     try {
+      debugPrint("🧹 [FLUTTER] deleteGesture() called with name='$name'");
+
       await _channel.invokeMethod('deleteGesture', name);
+
+      debugPrint("✅ [FLUTTER] deleteGesture() SUCCESS for '$name'");
     } on PlatformException catch (e) {
-      debugPrint("Failed to delete gesture '$name': ${e.message}");
+      debugPrint(
+        "❌ [FLUTTER] deleteGesture() PlatformException: ${e.code} ${e.message}",
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint("❌ [FLUTTER] deleteGesture() UNKNOWN error: $e");
+      rethrow;
     }
   }
 }
