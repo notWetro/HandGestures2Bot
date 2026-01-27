@@ -6,9 +6,6 @@ import 'package:flutterapp/services/voice_ai_service/voice_service.dart';
 import 'package:flutterapp/services/voice_ai_service/tts_service.dart';
 import 'package:flutterapp/services/voice_ai_service/eleven_labs_service.dart';
 import 'package:flutterapp/services/robot_service.dart';
-import 'package:flutterapp/services/dance_service.dart';
-import 'package:flutterapp/services/dance_music_controller.dart';
-import 'package:flutterapp/models/dance_move.dart';
 
 class VoiceView extends StatefulWidget {
   const VoiceView({super.key});
@@ -24,8 +21,6 @@ class _VoiceViewState extends State<VoiceView> {
   final TtsService _ttsService = TtsService();
   final ElevenLabsService _elevenLabsService = ElevenLabsService();
   final RobotService _robotService = RobotService();
-  final DanceService _danceService = DanceService();
-  final DanceMusicController _musicController = DanceMusicController();
 
   // State
   String _status = "Booting up...";
@@ -158,18 +153,8 @@ class _VoiceViewState extends State<VoiceView> {
           _elevenLabsService.speak(aiSpeech, _voices[_selectedVoiceName]!);
         } 
         
-        // Check for "dance" and execute dance move
-        if (data.containsKey('dance')) {
-          String danceCommand = data['dance'];
-          debugPrint("Dance Command: $danceCommand");
-          await _executeDance(danceCommand);
-          
-          if (!data.containsKey('response')) {
-            _ttsService.speak("Let's dance!");
-          }
-        }
         // Check for "direction" and move robot
-        else if (data.containsKey('direction')) {
+        if (data.containsKey('direction')) {
           String direction = data['direction'];
           debugPrint("Robot Command: $direction");
           _robotService.sendCommand(direction);
@@ -184,47 +169,6 @@ class _VoiceViewState extends State<VoiceView> {
       debugPrint("JSON Parse Error: $e");
       _ttsService.speak("I'm confused.");
     }
-  }
-
-  Future<void> _executeDance(String danceName) async {
-    final dances = await _danceService.loadDanceMoves();
-    
-    DanceMove? selectedDance;
-    
-    // Try to find dance by name (case-insensitive)
-    if (danceName.toLowerCase() != 'start') {
-      selectedDance = dances.cast<DanceMove?>().firstWhere(
-        (d) => d!.name.toLowerCase().contains(danceName.toLowerCase()),
-        orElse: () => null,
-      );
-    }
-    
-    // If no specific dance found, take the first one
-    if (selectedDance == null && dances.isNotEmpty) {
-      selectedDance = dances.first;
-    }
-    
-    if (selectedDance == null) {
-      debugPrint("No dance moves available");
-      _ttsService.speak("No dances configured");
-      return;
-    }
-    
-    debugPrint("Executing dance: ${selectedDance.name}");
-    
-    // Play music if available
-    if (selectedDance.musicPath != null && selectedDance.musicPath!.isNotEmpty) {
-      await _musicController.play(selectedDance.musicPath!);
-    }
-    
-    // Execute dance steps
-    for (var step in selectedDance.steps) {
-      _robotService.sendCommand(step.movement);
-      await Future.delayed(Duration(milliseconds: step.durationMs));
-    }
-    
-    // Stop robot after dance
-    _robotService.sendCommand('stop');
   }
 
   @override
