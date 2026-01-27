@@ -130,13 +130,13 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
     if (confirmed != true) return;
 
     final gestureName = dance.assignedGesture;
+    debugPrint("🧹 [DELETE] Dance='${dance.name}', Gesture='$gestureName'");
 
-    // 1️⃣ Gesture löschen + UI sofort updaten
+    // 1️⃣ Gesture löschen
     if (gestureName != null && gestureName.isNotEmpty) {
-      debugPrint("🧹 [DELETE] Deleting gesture FIRST: $gestureName");
-
       await _gestureService.deleteGesture(gestureName);
 
+      // UI SOFORT aktualisieren
       setState(() {
         _savedGestures.remove(gestureName);
       });
@@ -146,12 +146,11 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
 
     // 2️⃣ Dance löschen
     await _danceService.deleteDanceMove(dance.id);
-    debugPrint("🗑️ [DELETE] Dance deleted: ${dance.id}");
 
-    // 3️⃣ Rest neu laden (safe)
+    // 3️⃣ UI refresh
     await _fetchDances();
-    await _fetchGestures();
   }
+
 
   // Assign gesture to dance
   void _assignGestureToDance(DanceMove dance) async {

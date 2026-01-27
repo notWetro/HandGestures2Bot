@@ -8,6 +8,9 @@ import '../services/dance_service.dart';
 class GestureService {
   // Method channel for bi-directional communication
   static const MethodChannel _channel = MethodChannel('gesture_channel');
+  static const MethodChannel _adminChannel =
+    MethodChannel('gesture_admin_channel');
+
 
   // Stream controller to broadcast gestures received from native
   final _gestureController = StreamController<String>.broadcast();
@@ -82,19 +85,12 @@ class GestureService {
   }
 
   Future<void> deleteGesture(String name) async {
+    debugPrint("🧹 [FLUTTER] deleteGesture() called with name='$name'");
     try {
-      debugPrint("🧹 [FLUTTER] deleteGesture() called with name='$name'");
-
-      await _channel.invokeMethod('deleteGesture', name);
-
-      debugPrint("✅ [FLUTTER] deleteGesture() SUCCESS for '$name'");
-    } on PlatformException catch (e) {
-      debugPrint(
-        "❌ [FLUTTER] deleteGesture() PlatformException: ${e.code} ${e.message}",
-      );
-      rethrow;
+      await _adminChannel.invokeMethod('deleteGesture', name);
+      debugPrint("✅ [FLUTTER] deleteGesture() success for '$name'");
     } catch (e) {
-      debugPrint("❌ [FLUTTER] deleteGesture() UNKNOWN error: $e");
+      debugPrint("❌ [FLUTTER] deleteGesture() error: $e");
       rethrow;
     }
   }

@@ -98,10 +98,10 @@ class MainActivity: FlutterActivity() {
             }
         }
 
-        // Gesture Channel
+        // Gesture ADMIN Channel (DELETE ONLY)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "gesture_channel"
+            "gesture_admin_channel"
         ).setMethodCallHandler { call, result ->
 
             when (call.method) {
@@ -110,7 +110,7 @@ class MainActivity: FlutterActivity() {
                     val name = call.arguments as? String
                     if (name != null) {
                         gestureRecognizer.deleteGesture(name)
-                        Log.d("GESTURE", "Deleted gesture in realtime: $name")
+                        Log.d("GESTURE_ADMIN", "Deleted gesture in realtime: $name")
                         result.success(true)
                     } else {
                         result.error("ARG_ERROR", "Gesture name is null", null)
@@ -120,6 +120,7 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
 
 
 
