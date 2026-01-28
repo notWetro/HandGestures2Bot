@@ -45,7 +45,7 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
       final List<String> result = await _gestureService.getGestureList();
       if (mounted) {
         setState(() {
-          _savedGestures = result;
+          _savedGestures = List.from(result);
           _isLoading = false;
         });
       }
@@ -132,22 +132,24 @@ class _HandGesturesPageState extends State<HandGesturesPage> {
     final gestureName = dance.assignedGesture;
     debugPrint("🧹 [DELETE] Dance='${dance.name}', Gesture='$gestureName'");
 
-    // 1️⃣ Gesture löschen
+    //  Gesture löschen
     if (gestureName != null && gestureName.isNotEmpty) {
       await _gestureService.deleteGesture(gestureName);
 
       // UI SOFORT aktualisieren
       setState(() {
+        // Ensure the list is growable before removing
+        _savedGestures = List.from(_savedGestures);
         _savedGestures.remove(gestureName);
       });
 
       debugPrint("✅ [DELETE] Gesture removed from UI state");
     }
 
-    // 2️⃣ Dance löschen
+    // 2️ Dance löschen
     await _danceService.deleteDanceMove(dance.id);
 
-    // 3️⃣ UI refresh
+    // 3️ UI refresh
     await _fetchDances();
   }
 

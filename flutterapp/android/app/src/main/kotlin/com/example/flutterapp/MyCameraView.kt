@@ -30,7 +30,7 @@ class MyCameraView(
     private lateinit var overlayView: OverlayView
     
     // Logic Variables
-    private val gestureRecognizer = GestureRecognizer(activity) // Pass Context
+    private val gestureRecognizer = activity.gestureRecognizer
     private var lastGesture = "UNKNOWN"
     
     // Flag to capture next frame
