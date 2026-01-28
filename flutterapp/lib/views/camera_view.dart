@@ -90,6 +90,21 @@ class _CameraViewState extends State<CameraView> {
               commandHistory.removeLast();
             }
           });
+
+          // Ensure the newly added dance entry is visible in the history
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                0.0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+
+          // Yield briefly so the UI can rebuild before starting the dance
+          await Future.delayed(const Duration(milliseconds: 50));
+
           debugPrint(
             "Detected Gesture: $gesture -> Playing Dance: ${dance.name}",
           );
