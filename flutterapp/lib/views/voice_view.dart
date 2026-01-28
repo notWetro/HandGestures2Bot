@@ -31,7 +31,7 @@ class _VoiceViewState extends State<VoiceView> {
 
   // ElevenLabs Voices (Name : ID)
   final Map<String, String> _voices = {
-    'Micky Mouse (male)': 'mdzEgLpu0FjTwYs5oot0', 
+    'Micky Mouse (male)': 'M5t0724ORuAGCh3p3DUR', 
     'Micky Mouse (female)': 'eppqEXVumQ3CfdndcIBd',
     'Evil': 'PSkrmGGNwoOIKXqzUWs9',
   };
@@ -115,7 +115,7 @@ class _VoiceViewState extends State<VoiceView> {
         setState(() {
           _userSpeech = text;
           _isListening = false;
-          _status = "🤔 Processing...";
+          _status = "Processing...";
         });
 
         // Get JSON String from AI

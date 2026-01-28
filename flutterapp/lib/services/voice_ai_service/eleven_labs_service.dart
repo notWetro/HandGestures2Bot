@@ -4,7 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 class ElevenLabsService {
-  static const String _apiKey = "sk_18c0abf2b73bea48df7a2a7f3f27a395b2ad4f0ec1928575"; 
+  static const String _apiKey = "sk_d63b1fb3f34df3f3a2631a94b62135b39235c8e2f8d467a3"; 
   static const String _baseUrl = "https://api.elevenlabs.io/v1/text-to-speech";
   
   final AudioPlayer _audioPlayer = AudioPlayer();
