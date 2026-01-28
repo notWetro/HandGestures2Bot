@@ -71,9 +71,9 @@ class SafetyScanner(Node):
     detected within the safety distance.
     """
 
-    # -------------------------------------------------------------------------
+
     # Sector Configuration
-    # -------------------------------------------------------------------------
+
     LEFT_SECTOR_MIN_DEG = 7.5
     LEFT_SECTOR_MAX_DEG = 22.5
     CENTER_SECTOR_MIN_DEG = -7.5
@@ -83,14 +83,14 @@ class SafetyScanner(Node):
     BEHIND_SECTOR_MIN_DEG = 157.5
     BEHIND_SECTOR_MAX_DEG = -157.5
 
-    # -------------------------------------------------------------------------
+
     # Safety Configuration
-    # -------------------------------------------------------------------------
+
     SAFETY_DISTANCE_M = 0.25  # 25 cm in meters
 
-    # -------------------------------------------------------------------------
+
     # Beep Configuration (parking-sensor like)
-    # -------------------------------------------------------------------------
+
     BEEP_NEAR_M = 0.25
     BEEP_MID_M = 0.30
     BEEP_FAR_M = 0.40
@@ -102,12 +102,12 @@ class SafetyScanner(Node):
         """Initialize the SafetyScanner node."""
         super().__init__("safety_scanner")
 
-        # Store the latest LaserScan message
+        
         self.latest_scan: Optional[LaserScan] = None
         self._last_scan_time_s: Optional[float] = None
 
         # If scan data stops (real robot LiDAR issues), fail-safe block forward.
-        # This is intentionally conservative to prevent driving blind.
+        
         self.declare_parameter("fail_safe_on_scan_timeout", True)
         self.declare_parameter("scan_timeout_sec", 1.0)
         self.declare_parameter("scan_topic", "/scan")
@@ -120,9 +120,9 @@ class SafetyScanner(Node):
         self.obstacle_behind_detected: bool = False  # Behind obstacle
         self.last_obstacle_sector: str = ""
 
-        # -------------------------------------------------------------------------
+        
         # Beep state
-        # -------------------------------------------------------------------------
+        
         self._last_beep_time_s: float = 0.0
         self._far_beep_done: bool = False
 
@@ -146,9 +146,9 @@ class SafetyScanner(Node):
             durability=DurabilityPolicy.VOLATILE,
         )
 
-        # -------------------------------------------------------------------------
+        
         # Create LaserScan subscriber
-        # -------------------------------------------------------------------------
+        
         self.scan_subscription = self.create_subscription(
             LaserScan,
             self.scan_topic,
@@ -156,9 +156,9 @@ class SafetyScanner(Node):
             scan_qos,
         )
 
-        # -------------------------------------------------------------------------
+        
         # Create velocity command subscriber (input)
-        # -------------------------------------------------------------------------
+        
         self.cmd_vel_in_sub = self.create_subscription(
             Twist,
             "/cmd_vel_in",
@@ -166,50 +166,43 @@ class SafetyScanner(Node):
             cmd_qos,
         )
 
-        # -------------------------------------------------------------------------
+        
         # Create velocity publisher (filtered output)
-        # -------------------------------------------------------------------------
+        
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             "/cmd_vel",
             cmd_qos,
         )
 
-        # -------------------------------------------------------------------------
+        
         # Create obstacle status publisher (for WebSocket/app feedback)
-        # -------------------------------------------------------------------------
+        
         self.obstacle_status_pub = self.create_publisher(
             String,
             "/obstacle_status",
             cmd_qos,
         )
 
-        # -------------------------------------------------------------------------
-        # Optional sound service client (TurtleBot3 buzzer)
-        # -------------------------------------------------------------------------
+        
+        
         self.sound_client = None
         if Sound is not None:
             self.sound_client = self.create_client(Sound, "/sound")
 
-        # -------------------------------------------------------------------------
-        # Create timer for periodic logging (every 2 seconds)
-        # -------------------------------------------------------------------------
+        
         self.log_timer = self.create_timer(
             timer_period_sec=2.0,
             callback=self.log_timer_callback,
         )
 
-        # -------------------------------------------------------------------------
-        # Beep timer (10Hz)
-        # -------------------------------------------------------------------------
+        
         self.beep_timer = self.create_timer(
             timer_period_sec=0.1,
             callback=self.beep_timer_callback,
         )
 
-        # -------------------------------------------------------------------------
-        # Startup log
-        # -------------------------------------------------------------------------
+        
         self.get_logger().info("SafetyScanner node started.")
         self.get_logger().info(f"Subscribing to: {self.scan_topic}, /cmd_vel_in")
         self.get_logger().info("Publishing to: /cmd_vel, /obstacle_status")
@@ -228,10 +221,9 @@ class SafetyScanner(Node):
             return  # Don't block, just skip if service not ready
 
         request = Sound.Request()
-        # Sound values: OFF=0, ON=1, LOW_BATTERY=2, ERROR=3, BUTTON1=4, BUTTON2=5
-        # Use ERROR (3) for a warning-like sound
+        
         request.value = 3
-        # Call asynchronously to avoid blocking
+        
         self.sound_client.call_async(request)
 
     def _get_front_min_distance(self) -> Optional[float]:
@@ -271,7 +263,7 @@ class SafetyScanner(Node):
         front_min_m = self._get_front_min_distance()
         behind_min_m = self._get_behind_min_distance()
         
-        # Use the minimum of front and behind distances for beeping
+        
         min_distance_m = None
         if front_min_m is not None and behind_min_m is not None:
             min_distance_m = min(front_min_m, behind_min_m)
@@ -437,11 +429,11 @@ class SafetyScanner(Node):
                 if self.obstacle_behind_detected:
                     blocked_directions.append("backward")
                 self.get_logger().warn(
-                    f"⚠️ OBSTACLE DETECTED in {sector_str}! Blocking {' and '.join(blocked_directions)} motion."
+                    f"OBSTACLE DETECTED in {sector_str}! Blocking {' and '.join(blocked_directions)} motion."
                 )
                 self.last_obstacle_sector = sector_str
         elif was_detected or was_behind_detected:
-            self.get_logger().info("✓ Obstacle cleared. All motion allowed.")
+            self.get_logger().info("Obstacle cleared. All motion allowed.")
             self.last_obstacle_sector = ""
 
     def cmd_vel_in_callback(self, msg: Twist) -> None:
@@ -460,12 +452,12 @@ class SafetyScanner(Node):
         output_cmd.linear.z = msg.linear.z
         output_cmd.angular.x = msg.angular.x
         output_cmd.angular.y = msg.angular.y
-        output_cmd.angular.z = msg.angular.z  # Turning always allowed
+        output_cmd.angular.z = msg.angular.z  
 
-        # Block forward motion if front obstacle detected
+        
         if self.obstacle_detected and msg.linear.x > 0.0:
             output_cmd.linear.x = 0.0
-        # Block backward motion if behind obstacle detected
+        
         elif self.obstacle_behind_detected and msg.linear.x < 0.0:
             output_cmd.linear.x = 0.0
         else:
@@ -479,7 +471,7 @@ class SafetyScanner(Node):
         Logging callback - runs every 2 seconds.
         Logs the minimum distances in each front sector.
         """
-        # Keep obstacle state updated even if scan never arrives.
+        
         self._update_obstacle_state()
 
         scan_ok = self._scan_is_fresh()

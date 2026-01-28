@@ -13,23 +13,23 @@ CHAR_ACK_UUID = "12345678-1234-5678-1234-56789abcdef5"
 
 # Optional overrides via env vars
 TARGET_NAME = os.environ.get("TARGET_NAME", "TurtleBot3-Provisioning")
-ADDRESS = os.environ.get("ADDRESS")  # e.g., AA:BB:CC:DD:EE:FF
+ADDRESS = os.environ.get("ADDRESS")  
 SCAN_TIMEOUT = float(os.environ.get("SCAN_TIMEOUT", "6"))
 CONNECT_TIMEOUT = float(os.environ.get("CONNECT_TIMEOUT", "15"))
 ACK_JSON = os.environ.get("ACK_JSON", json.dumps({"status": "connected"}))
 
 
 def pick_device(devices):
-    # Prefer exact name match; metadata may not exist on some Bleak versions
+    
     for d in devices:
         name = (d.name or "").strip()
         if name == TARGET_NAME:
             return d
-    # Fallback: first device with a non-empty name
+    
     for d in devices:
         if (d.name or "").strip():
             return d
-    # Last resort: first device seen
+    
     return devices[0] if devices else None
 
 

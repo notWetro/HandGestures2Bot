@@ -28,12 +28,12 @@ WLAN_INTERFACE = "wlan0"
 ENCODING = "utf-8"
 DEVICE_NAME = "TurtleBot3-Provisioning"
 
-# WebSocket server management
+
 SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 WEBSOCKET_STARTED = False
 WEBSOCKET_PID: Optional[int] = None
 
-# Global state
+
 ssid_value: Optional[str] = None
 password_value: Optional[str] = None
 status_value: str = "idle"
@@ -52,7 +52,7 @@ def start_websocket_server() -> bool:
     global WEBSOCKET_STARTED, WEBSOCKET_PID
     
     if WEBSOCKET_STARTED:
-        logging.info("WebSocket server already started")
+        logging.info("WebSocket server started")
         return True
     
     try:
@@ -62,8 +62,7 @@ def start_websocket_server() -> bool:
             logging.error("WebSocket start script not found: %s", server_script)
             return False
         
-        # Start the websocket server
-        logging.info("🚀 Starting WebSocket server...")
+
         
         log_dir = "/tmp/turtlebot_logs"
         os.makedirs(log_dir, exist_ok=True)
@@ -84,7 +83,7 @@ def start_websocket_server() -> bool:
             f.write(f"{WEBSOCKET_PID} websocket_server\n")
         
         WEBSOCKET_STARTED = True
-        logging.info("✅ WebSocket server started (PID: %d)", WEBSOCKET_PID)
+        logging.info("WebSocket server started (PID: %d)", WEBSOCKET_PID)
         return True
         
     except Exception as e:
@@ -126,7 +125,7 @@ def _nmcli_get_active_connection(nmcli: str) -> Optional[Tuple[str, str]]:
 def _nmcli_restore_connection(nmcli: str, prev: Tuple[str, str]) -> None:
     name, uuid = prev
     logging.info("Restoring previous Wi-Fi connection: %s (%s)", name, uuid)
-    # Try UUID first, then name
+    
     _run([nmcli, "con", "up", "uuid", uuid, "ifname", WLAN_INTERFACE], timeout=20)
     _run([nmcli, "con", "up", "id", name, "ifname", WLAN_INTERFACE], timeout=20)
 
@@ -252,7 +251,7 @@ def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
         if prev_wpa_id is not None:
             _wpa_restore_network(prev_wpa_id)
     
-    # Method 2: Try nmcli (for NetworkManager managed interfaces)
+    
     nmcli_cmd = _nmcli_cmd()
     if not nmcli_cmd:
         return False, "Neither wpa_cli nor nmcli available"
@@ -265,7 +264,7 @@ def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
         if result.returncode != 0:
             reason = (result.stderr or result.stdout).strip() or f"nmcli failed with code {result.returncode}"
-            # Restore previous connection if we had one
+            
             if prev_nm_conn is not None:
                 _nmcli_restore_connection(nmcli_cmd, prev_nm_conn)
             return False, reason
@@ -301,7 +300,7 @@ def get_status_json() -> str:
     if last_error:
         payload["error"] = last_error
     json_str = json.dumps(payload)
-    logging.info("📤 Robot → App (Status JSON): %s", json_str)
+    logging.info("Robot to App (Status JSON): %s", json_str)
     return json_str
 
 
@@ -314,12 +313,12 @@ def notify_status_update():
     
     try:
         status_bytes = list(get_status_json().encode(ENCODING))
-        # Find the status characteristic (chr_id=3) and update its value
-        # This triggers PropertiesChanged signal which sends BLE notification
+        
+        
         for char in _ble_peripheral.characteristics:
             if char.path.endswith('char0003'):
                 char.set_value(status_bytes)
-                logging.info("📤 BLE Notification sent with status update")
+                logging.info("Notification sent with status update")
                 return
         logging.warning("Status characteristic not found")
     except Exception as e:
@@ -333,7 +332,7 @@ def try_provision():
     if not (ssid_value and password_value):
         return
 
-    # Capture values and reset immediately so repeated writes don't trigger more work.
+    
     ssid = ssid_value
     password = password_value
     ssid_value = None
@@ -346,7 +345,7 @@ def try_provision():
             success, reason = connect_wifi(target_ssid, target_password)
             if success:
                 import time
-                time.sleep(2)  # Wait for IP assignment
+                time.sleep(2)  
                 ip = get_wlan_ip()
                 if ip:
                     status_value = "connected"
@@ -354,10 +353,10 @@ def try_provision():
                     last_error = None
                     logging.info("Provisioning complete: %s -> %s", target_ssid, ip)
                     
-                    # Send BLE notification with IP address to the app
+                    
                     notify_status_update()
                     
-                    # Start WebSocket server now that WiFi is connected
+                    
                     start_websocket_server()
                 else:
                     status_value = "failed"
@@ -376,7 +375,7 @@ def try_provision():
             logging.exception("Provisioning worker failed: %s", exc)
             notify_status_update()
         finally:
-            # Allow a future provisioning attempt
+            
             with _provision_lock:
                 global _provision_thread
                 _provision_thread = None
@@ -392,7 +391,7 @@ def try_provision():
         _provision_thread.start()
 
 
-# Callbacks for bluezero
+
 def read_status():
     """Read callback for status characteristic."""
     value = get_status_json().encode(ENCODING)
@@ -405,7 +404,7 @@ def write_ssid(value, options):
     global ssid_value
     text = bytes(value).decode(ENCODING).strip()
     ssid_value = text
-    logging.info("📥 App → Robot (SSID): '%s'", ssid_value)
+    logging.info("App to Robot (SSID): '%s'", ssid_value)
     try_provision()
 
 
@@ -414,7 +413,7 @@ def write_password(value, options):
     global password_value
     text = bytes(value).decode(ENCODING).strip()
     password_value = text
-    logging.info("📥 App → Robot (Password): [%d characters]", len(password_value))
+    logging.info("App to Robot (Password): [%d characters]", len(password_value))
     try_provision()
 
 
@@ -423,12 +422,11 @@ def write_ack(value, options):
     text = bytes(value).decode(ENCODING).strip()
     try:
         payload = json.loads(text)
-        logging.info("📥 App → Robot (ACK JSON): %s", text)
+        logging.info("App to Robot (ACK JSON): %s", text)
         if payload.get("status") == "connected" or payload.get("connected"):
             logging.info("Client ACK: connected")
     except:
-        logging.info("📥 App → Robot (ACK): %s", text)
-
+        logging.info("App to Robot (ACK): %s", text)
 
 def main():
     global status_value, ip_value
@@ -442,18 +440,18 @@ def main():
     logging.info("Device name: %s", DEVICE_NAME)
     logging.info("Service UUID: %s", SERVICE_UUID)
     
-    # Check if WiFi is already connected at startup (for status reporting only)
+    
     current_ip = get_wlan_ip()
     if current_ip:
         logging.info("WiFi already connected with IP: %s", current_ip)
         logging.info("WebSocket will start after user provisions via Bluetooth")
         status_value = "connected"
         ip_value = current_ip
-        # Do NOT start WebSocket here - wait for user to provision via Bluetooth
+        
     else:
         logging.info("No WiFi connection detected - waiting for provisioning...")
 
-    # bluezero peripheral needs a GLib mainloop; fail fast with a clear message
+    
     try:
         from gi.repository import GLib  # type: ignore
     except Exception as exc:
@@ -462,7 +460,7 @@ def main():
         logging.error("Details: %s", exc)
         sys.exit(3)
     
-    # Get the first available adapter
+    
     adapters = list(adapter.Adapter.available())
     if not adapters:
         logging.error("No Bluetooth adapters found!")
@@ -471,15 +469,15 @@ def main():
     adapter_address = adapters[0].address
     logging.info("Using Bluetooth adapter: %s", adapter_address)
     
-    # Create peripheral and store globally for notifications
+    
     global _ble_peripheral
     ble_peripheral = peripheral.Peripheral(adapter_address=adapter_address, local_name=DEVICE_NAME)
     _ble_peripheral = ble_peripheral
     
-    # Add service
+    
     ble_peripheral.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
     
-    # SSID characteristic - write only
+    
     ble_peripheral.add_characteristic(
         srv_id=1,
         chr_id=1,
@@ -491,7 +489,7 @@ def main():
     )
     logging.info("  SSID characteristic: %s", CHAR_SSID_UUID)
     
-    # Password characteristic - write only
+    
     ble_peripheral.add_characteristic(
         srv_id=1,
         chr_id=2,
@@ -503,7 +501,7 @@ def main():
     )
     logging.info("  Password characteristic: %s", CHAR_PASSWORD_UUID)
     
-    # Status characteristic - read + notify
+    
     ble_peripheral.add_characteristic(
         srv_id=1,
         chr_id=3,
@@ -515,7 +513,7 @@ def main():
     )
     logging.info("  Status characteristic: %s", CHAR_STATUS_UUID)
     
-    # ACK characteristic - write only
+    
     ble_peripheral.add_characteristic(
         srv_id=1,
         chr_id=4,
@@ -527,7 +525,7 @@ def main():
     )
     logging.info("  ACK characteristic: %s", CHAR_ACK_UUID)
     
-    # Publish and start
+    
     ble_peripheral.publish()
     logging.info("BLE Server started and advertising!")
     logging.info("Waiting for connections...")

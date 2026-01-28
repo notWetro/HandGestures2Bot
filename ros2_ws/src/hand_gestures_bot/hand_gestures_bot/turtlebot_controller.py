@@ -16,23 +16,21 @@ class TurtleBotController(Node):
             depth=10
         )
 
-        # Publisher for velocity commands
+        
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel_in', qos)
 
-        # 🟢 DO NOT publish until the first real command arrives
+        
         self.current_cmd = None
 
-        # Watchdog timing
-        # By default, keep executing the last received command until a new one arrives.
-        # Set command_timeout_sec > 0.0 to re-enable auto-stop behavior.
+        
         self.declare_parameter("command_timeout_sec", 0.0)
         self.timeout_duration = float(self.get_parameter("command_timeout_sec").value)
         self.last_command_time = time.time()
 
-        # Continuous publishing at 10Hz (same as ros2 topic pub -r 10)
+        
         self.publisher_timer = self.create_timer(0.1, self.publish_continuous)
 
-        # Watchdog timer (optional)
+        
         self.watchdog_timer = None
         if self.timeout_duration and self.timeout_duration > 0.0:
             self.watchdog_timer = self.create_timer(0.1, self.watchdog_check)
@@ -40,13 +38,11 @@ class TurtleBotController(Node):
         self.get_logger().info("TurtleBot Controller Initialized (READY)")
 
 
-    # ──────────────────────────────────────────────
-    # MOVEMENT COMMANDS
-    # ──────────────────────────────────────────────
+    
 
     def move_forward(self):
         msg = Twist()
-        msg.linear.x = 0.21        # same magnitude as CLI test
+        msg.linear.x = 0.21        
         msg.angular.z = 0.0
         self.current_cmd = msg
         self.last_command_time = time.time()
@@ -83,9 +79,7 @@ class TurtleBotController(Node):
         self.get_logger().info("CMD: STOP")
 
 
-    # ──────────────────────────────────────────────
-    # INTERNAL TIMERS
-    # ──────────────────────────────────────────────
+    
 
     def publish_continuous(self):
         """
