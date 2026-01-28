@@ -4,19 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../services/dance_service.dart';
 
-
 class GestureService {
   // Method channel for bi-directional communication
   static const MethodChannel _channel = MethodChannel('gesture_channel');
   static const MethodChannel _adminChannel =
     MethodChannel('gesture_admin_channel');
 
-
-  // Stream controller to broadcast gestures received from native
   final _gestureController = StreamController<String>.broadcast();
   final _saveSuccessController = StreamController<String>.broadcast();
 
-  // View type identifiers for the native platform views
   static const String _androidViewType = 'my_camera_view';
   static const String _iosViewType = 'my_camera_view';
 
@@ -60,7 +56,7 @@ class GestureService {
     }
   }
 
-  /// Builds and returns the appropriate native camera view widget.
+  /// Builds and returns native camera view widget.
   Widget buildCameraView() {
     if (Platform.isAndroid) {
       return const AndroidView(
@@ -78,19 +74,18 @@ class GestureService {
     return const Center(child: Text("Platform not supported"));
   }
 
-  /// Should be called when the service is no longer needed.
   void dispose() {
     _gestureController.close();
     _saveSuccessController.close();
   }
 
   Future<void> deleteGesture(String name) async {
-    debugPrint("🧹 [FLUTTER] deleteGesture() called with name='$name'");
+    debugPrint("FLUTTER deleteGesture() called with name='$name'");
     try {
       await _adminChannel.invokeMethod('deleteGesture', name);
-      debugPrint("✅ [FLUTTER] deleteGesture() success for '$name'");
+      debugPrint("FLUTTER deleteGesture() success for '$name'");
     } catch (e) {
-      debugPrint("❌ [FLUTTER] deleteGesture() error: $e");
+      debugPrint("FLUTTER deleteGesture() error: $e");
       rethrow;
     }
   }

@@ -1,6 +1,6 @@
 //
 //  GestureRecognizer.swift
-//  Runner
+//  
 //
 //  Created by Okan Demirbilek on 14.12.25.
 //
@@ -18,11 +18,10 @@ class GestureRecognizer {
     private var templates: [GestureTemplate] = []
     private let storageURL: URL
 
-    /// Strengere oder weichere Erkennung – identisch zu Android
     private let MATCH_THRESHOLD: Float = 15.0
 
     init() {
-        // Speicherpfad identisch zu Android (JSON)
+        // Storagepath
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         self.storageURL = dir.appendingPathComponent("gestures.json")
         loadFromStorage()
@@ -32,12 +31,11 @@ class GestureRecognizer {
 
     }
 
-    // MARK: - MAIN API
+    // MAIN API
 
     func saveTemplate(name: String, landmarks: [NormalizedLandmark]) {
         let fp = createFingerprint(from: landmarks)
 
-        // Überschreiben wenn Name existiert
         templates.removeAll { $0.name == name }
         templates.append(GestureTemplate(name: name, fingerprint: fp))
 
@@ -68,7 +66,7 @@ class GestureRecognizer {
         return templates.map { $0.name }
     }
 
-    // MARK: - STORAGE
+    // STORAGE
 
     private func saveToStorage() {
         do {
@@ -95,7 +93,7 @@ class GestureRecognizer {
         }
     }
 
-    // MARK: - FINGERPRINTING
+    // FINGERPRINTING
 
     private func createFingerprint(from landmarks: [NormalizedLandmark]) -> [Float] {
         guard landmarks.count >= 21 else { return [] }

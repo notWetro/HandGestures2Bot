@@ -1,6 +1,6 @@
 //
 //  GestureStore.swift
-//  Runner
+//  
 //
 //  Created by Okan Demirbilek on 14.12.25.
 //

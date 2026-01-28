@@ -1,6 +1,6 @@
 //
 //  HandOverlayView.swift
-//  Runner
+//  
 //
 //  Created by Okan Demirbilek on 02.12.25.
 //

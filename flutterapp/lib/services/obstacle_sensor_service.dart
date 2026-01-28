@@ -71,7 +71,7 @@ class ObstacleSensorService {
     _isConnected = false;
     _connectionStatusController.add(false);
 
-    // Auto-reconnect nach 3 Sekunden
+    // Auto-reconnect after 3 seconds 
     Future.delayed(const Duration(seconds: 3), () {
       if (_robotIp != null && !_isConnected) {
         _connectWebSocket();

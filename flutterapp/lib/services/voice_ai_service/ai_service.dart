@@ -39,7 +39,6 @@ class AiService {
         currentPrompt += "\n  3. The 'response' text MUST be in the style/personality of $personaName.";
       }
 
-      // Combine personality + user command
       final fullPrompt = '$currentPrompt\nUser: "$text"\nAI:';
       
       // Send to brain

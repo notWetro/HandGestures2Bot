@@ -1,16 +1,11 @@
-//
-//  BluetoothProvisioningService.swift
-//  Runner
-//
 //  Native BLE implementation for WiFi provisioning
-//
 
 import Foundation
 import CoreBluetooth
 
 class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     
-    // BLE Service and Characteristic UUIDs
+    
     private let serviceUUID = CBUUID(string: "12345678-1234-5678-1234-56789abcdef0")
     private let ssidCharUUID = CBUUID(string: "12345678-1234-5678-1234-56789abcdef1")
     private let passwordCharUUID = CBUUID(string: "12345678-1234-5678-1234-56789abcdef2")
@@ -70,9 +65,6 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             return
         }
 
-        print("🔵 BLE Native: Sending WiFi credentials...")
-        print("🔵 BLE Native: SSID: \(ssid)")
-
         if let ssidData = ssid.data(using: .utf8) {
             peripheral.writeValue(ssidData, for: ssidChar, type: .withResponse)
         }
@@ -90,8 +82,6 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         centralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
-    // MARK: - Callback Setup
-    
     func setIpCallback(_ callback: @escaping (String) -> Void) {
         ipCallback = callback
     }
@@ -100,15 +90,12 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         statusCallback = callback
     }
     
-    // MARK: - Public API
-    
     private var scanCallback: (([[String: String]]) -> Void)?
     private var isScanning: Bool = false
     
     func startScanning(callback: @escaping ([[String: String]]) -> Void) {
-        print("🔵 BLE Native: Starting scan...")
         if isScanning {
-            // Avoid overwriting the pending callback; just return what we have so far.
+            // to avoid overwriting 
             var devices: [[String: String]] = []
             for p in discoveredPeripherals {
                 devices.append([
@@ -119,17 +106,13 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             callback(devices)
             return
         }
-        // IMPORTANT: MethodChannel results must be returned exactly once.
-        // We therefore collect peripherals during the scan window and return
-        // the full list when scanning stops.
+    
         discoveredPeripherals.removeAll()
         scanCallback = callback
         isScanning = true
         
-        // Scan for devices advertising our service
         centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
         
-        // Stop scan after 10 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
             self?.stopScanning()
         }
@@ -137,12 +120,11 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func stopScanning() {
         centralManager.stopScan()
-        print("🔵 BLE Native: Scan stopped")
 
         guard isScanning else { return }
         isScanning = false
 
-        // Return discovered devices once
+        // Return discovered devices 
         if let callback = scanCallback {
             var devices: [[String: String]] = []
             for p in discoveredPeripherals {
@@ -157,7 +139,6 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     }
     
     func getConnectedDevices(callback: @escaping ([[String: String]]) -> Void) {
-        print("🔵 BLE Native: Getting connected devices...")
         
         var devices: [[String: String]] = []
         
@@ -169,14 +150,14 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
                 "name": peripheral.name ?? "Unknown",
                 "id": peripheral.identifier.uuidString
             ])
-            print("🔵 BLE Native: Found connected device: \(peripheral.name ?? "Unknown")")
+            print("BLE Native: Found connected device: \(peripheral.name ?? "Unknown")")
         }
         
         callback(devices)
     }
     
     func connectToDevice(deviceId: String, callback: @escaping (Bool, String?) -> Void) {
-        print("🔵 BLE Native: Connecting to device: \(deviceId)")
+        print("BLE Native: Connecting to device: \(deviceId)")
 
         // Keep only the latest attempt; ensure we complete it exactly once.
         connectCallback = callback
@@ -225,27 +206,25 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         }
     }
     
-    // MARK: - CBCentralManagerDelegate
-    
     private var discoveredPeripherals: [CBPeripheral] = []
     
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
-            print("🔵 BLE Native: Bluetooth is powered on")
+            print("BLE Native: Bluetooth is powered on")
         case .poweredOff:
-            print("⚠️ BLE Native: Bluetooth is powered off")
+            print("BLE Native: Bluetooth is powered off")
         case .unauthorized:
-            print("⚠️ BLE Native: Bluetooth is unauthorized")
+            print("BLE Native: Bluetooth is unauthorized")
         case .unsupported:
-            print("⚠️ BLE Native: Bluetooth is unsupported")
+            print("BLE Native: Bluetooth is unsupported")
         default:
-            print("⚠️ BLE Native: Bluetooth state: \(central.state.rawValue)")
+            print("BLE Native: Bluetooth state: \(central.state.rawValue)")
         }
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
-        print("🔵 BLE Native: Discovered \(peripheral.name ?? "Unknown") - \(peripheral.identifier)")
+        print("BLE Native: Discovered \(peripheral.name ?? "Unknown") - \(peripheral.identifier)")
         
         if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
             discoveredPeripherals.append(peripheral)
@@ -253,18 +232,18 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     }
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        print("✅ BLE Native: Connected to \(peripheral.name ?? "device")")
+        print("BLE Native: Connected to \(peripheral.name ?? "device")")
         connectedPeripheral = peripheral
         peripheral.discoverServices([serviceUUID])
     }
     
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        print("❌ BLE Native: Failed to connect: \(error?.localizedDescription ?? "unknown")")
+        print("BLE Native: Failed to connect: \(error?.localizedDescription ?? "unknown")")
         completeConnect(false, error?.localizedDescription ?? "Failed to connect")
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        print("🔵 BLE Native: Disconnected from device\(error != nil ? ": \(error!.localizedDescription)" : "")")
+        print("BLE Native: Disconnected from device\(error != nil ? ": \(error!.localizedDescription)" : "")")
         connectedPeripheral = nil
 
         if let pending = pendingCredentials {
@@ -277,7 +256,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error = error {
-            print("❌ BLE Native: Service discovery error: \(error.localizedDescription)")
+            print("BLE Native: Service discovery error: \(error.localizedDescription)")
             completeConnect(false, error.localizedDescription)
             return
         }
@@ -291,7 +270,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
         for service in services {
             if service.uuid == serviceUUID {
                 foundProvisioningService = true
-                print("✅ BLE Native: Found provisioning service")
+                print("BLE Native: Found provisioning service")
                 peripheral.discoverCharacteristics([ssidCharUUID, passwordCharUUID, statusCharUUID], for: service)
             }
         }
@@ -303,7 +282,7 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         if let error = error {
-            print("❌ BLE Native: Characteristic discovery error: \(error.localizedDescription)")
+            print("BLE Native: Characteristic discovery error: \(error.localizedDescription)")
             completeConnect(false, error.localizedDescription)
             return
         }
@@ -316,14 +295,13 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             switch characteristic.uuid {
             case ssidCharUUID:
                 ssidCharacteristic = characteristic
-                print("✅ BLE Native: Found SSID characteristic")
+                print("BLE Native: Found SSID characteristic")
             case passwordCharUUID:
                 passwordCharacteristic = characteristic
-                print("✅ BLE Native: Found Password characteristic")
+                print("BLE Native: Found Password characteristic")
             case statusCharUUID:
                 statusCharacteristic = characteristic
-                print("✅ BLE Native: Found Status characteristic")
-                // Subscribe to status notifications
+                print("BLE Native: Found Status characteristic")
                 peripheral.setNotifyValue(true, for: characteristic)
             default:
                 break
@@ -345,21 +323,21 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
             guard let data = characteristic.value,
                   let jsonString = String(data: data, encoding: .utf8) else { return }
             
-            print("🔵 BLE Native: Received status: \(jsonString)")
+            print("BLE Native: Received status: \(jsonString)")
             
             // Parse JSON and extract IP if available
             if let jsonData = jsonString.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
                 if let ip = json["ip"] as? String {
-                    print("🔵 BLE Native: Extracted IP: \(ip)")
+                    print("BLE Native: Extracted IP: \(ip)")
                     ipCallback?(ip)
                 }
                 if let status = json["status"] as? String {
-                    print("🔵 BLE Native: Extracted status: \(status)")
+                    print("BLE Native: Extracted status: \(status)")
                     statusCallback?(status)
                 }
                 if let errorMsg = json["error"] as? String {
-                    print("❌ BLE Native: Error from robot: \(errorMsg)")
+                    print("BLE Native: Error from robot: \(errorMsg)")
                 }
             }
         }
@@ -367,9 +345,9 @@ class BluetoothProvisioningService: NSObject, CBCentralManagerDelegate, CBPeriph
     
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         if let error = error {
-            print("❌ BLE Native: Write error: \(error.localizedDescription)")
+            print("BLE Native: Write error: \(error.localizedDescription)")
         } else {
-            print("✅ BLE Native: Write successful for \(characteristic.uuid)")
+            print("BLE Native: Write successful for \(characteristic.uuid)")
         }
     }
 }

@@ -1,6 +1,6 @@
 //
 //  CameraViewController.swift
-//  Runner
+//  
 //
 //  Created by Okan Demirbilek on 02.12.25.
 //
@@ -14,21 +14,21 @@ class CameraViewController: UIViewController,
                             AVCaptureVideoDataOutputSampleBufferDelegate,
                             HandLandmarkerServiceLiveStreamDelegate {
 
-    // MARK: - CAMERA SYSTEM
+    // CAMERA SYSTEM
     private let captureSession = AVCaptureSession()
     private var previewLayer: AVCaptureVideoPreviewLayer!
 
-    // MARK: - HAND OVERLAY
+    // HAND OVERLAY
     let overlay = HandOverlayView()
 
-    // MARK: - GESTURE ENGINE
-    let recognizer = GestureStore.shared         // Shared gesture engine
-    private var lastGesture: String = "UNKNOWN"  // Prevents spamming Flutter
+    // GESTURE ENGINE
+    let recognizer = GestureStore.shared         
+    private var lastGesture: String = "UNKNOWN"  
 
-    // MARK: - FLUTTER CHANNEL
+    // FLUTTER CHANNEL
     var methodChannel: FlutterMethodChannel?
 
-    // MARK: - MEDIAPIPE HAND TRACKING
+    // MEDIAPIPE HAND TRACKING
     private var handService: HandLandmarkerService!
 
     override func viewDidLoad() {
@@ -39,9 +39,7 @@ class CameraViewController: UIViewController,
         setupOverlay()
     }
 
-    // MARK: -------------------------
-    // MARK: MediaPipe Hand Landmarker
-    // MARK: -------------------------
+    // MediaPipe Hand Landmarker
 
     private func setupHandLandmarker() {
         guard let modelPath = Bundle.main.path(forResource: "hand_landmarker", ofType: "task")
@@ -60,9 +58,7 @@ class CameraViewController: UIViewController,
         )
     }
 
-    // MARK: --------
-    // MARK: CAMERA
-    // MARK: --------
+    // CAMERA
 
     private func setupCamera() {
         captureSession.sessionPreset = .high
@@ -91,15 +87,13 @@ class CameraViewController: UIViewController,
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
 
-        // START CAMERA ON BACKGROUND THREAD (Apple requirement)
+        // START CAMERA ON BACKGROUND THREAD
         DispatchQueue.global(qos: .userInitiated).async {
             self.captureSession.startRunning()
         }
     }
 
-    // MARK: ----------
-    // MARK: OVERLAY UI
-    // MARK: ----------
+    // OVERLAY UI
 
     private func setupOverlay() {
         overlay.frame = view.bounds
@@ -109,9 +103,7 @@ class CameraViewController: UIViewController,
         view.addSubview(overlay)
     }
 
-    // MARK: ---------------------
-    // MARK: CAMERA → MEDIAPIPE
-    // MARK: ---------------------
+    // CAMERA -> MEDIAPIPE
 
     func captureOutput(_ output: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
@@ -120,9 +112,7 @@ class CameraViewController: UIViewController,
         handService.detectAsync(sampleBuffer: sampleBuffer, orientation: .up)
     }
 
-    // MARK: ------------------------
-    // MARK: MP RESULT → LANDMARKS
-    // MARK: ------------------------
+    // MP RESULT -> LANDMARKS
 
     func handLandmarkerService(
         _ service: HandLandmarkerService,
@@ -137,13 +127,10 @@ class CameraViewController: UIViewController,
 
         DispatchQueue.main.async {
 
-            // 1️⃣ Draw Overlay
             self.overlay.update(with: mpResult)
 
-            // 2️⃣ Recognize Gesture
             let gesture = self.recognizer.recognize(landmarks: landmarks)
 
-            // 3️⃣ Send to Flutter only if changed
             if gesture != self.lastGesture {
                 self.lastGesture = gesture
                 print("iOS Gesture Detected → \(gesture)")
@@ -152,9 +139,7 @@ class CameraViewController: UIViewController,
         }
     }
 
-    // MARK: ----------------------
-    // MARK: GESTURE SAVE LOGIC
-    // MARK: ----------------------
+    // GESTURE SAVE LOGIC
 
     func saveGesture(name: String, landmarks: [NormalizedLandmark]) {
 
@@ -162,7 +147,6 @@ class CameraViewController: UIViewController,
 
         print("iOS: Gesture '\(name)' saved successfully.")
 
-        // Notify Flutter UI
         methodChannel?.invokeMethod("onSaveSuccess", arguments: name)
     }
 }

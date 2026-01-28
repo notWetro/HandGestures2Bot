@@ -29,7 +29,7 @@ class _VoiceViewState extends State<VoiceView> {
   bool _isListening = false;
   bool _canSpeak = false;
 
-  // ElevenLabs Voices (Name : ID)
+  // ElevenLabs Voices
   final Map<String, String> _voices = {
     'Micky Mouse (male)': 'M5t0724ORuAGCh3p3DUR', 
     'Micky Mouse (female)': 'eppqEXVumQ3CfdndcIBd',
@@ -128,14 +128,13 @@ class _VoiceViewState extends State<VoiceView> {
           });
         }
 
-          // Speak the Action
           _speakAction(jsonString);
         }
       );
     }
   }
 
-  // Logic: Convert JSON -> Voice & Robot Command
+  // Logic Convert JSON -> Voice & Robot Command
   void _speakAction(String jsonString) async {
     try {
       // Find the JSON part

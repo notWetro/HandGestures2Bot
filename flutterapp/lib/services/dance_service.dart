@@ -67,7 +67,7 @@ class DanceService {
   debugPrint("🧪 [DANCES COUNT] ${dances.length}");
   for (final d in dances) {
     debugPrint(
-      "🧾 Dance='${d.name}', assignedGesture='${d.assignedGesture}'",
+      "Dance='${d.name}', assignedGesture='${d.assignedGesture}'",
     );
   }
 
@@ -80,7 +80,7 @@ class DanceService {
           d.assignedGesture!.trim().toLowerCase() == normalized,
     );
   } catch (e) {
-    debugPrint("❌ [NO MATCH] for '$gesture'");
+    debugPrint("[NO MATCH] for '$gesture'");
     return null;
   }
 }

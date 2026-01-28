@@ -7,12 +7,12 @@ class TtsService {
     // Wait for the engine to load
     await _tts.awaitSpeakCompletion(true);
     
-    // Set Language (Important for offline usage)
+    // Set Language 
     await _tts.setLanguage("en-US");
     
     // Adjust Voice Properties
     await _tts.setPitch(1.0); 
-    await _tts.setSpeechRate(0.5); // Slower = more robotic
+    await _tts.setSpeechRate(0.5);
   }
 
   Future<void> speak(String text) async {

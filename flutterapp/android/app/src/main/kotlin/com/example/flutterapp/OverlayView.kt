@@ -25,7 +25,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
 
     init {
         initPaints()
-        // FORCE DRAWING: Ensures onDraw is called
         setWillNotDraw(false) 
     }
 
@@ -38,13 +37,12 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
     }
 
     private fun initPaints() {
-        // Make it huge and red so you can't miss it
         linePaint.color = Color.RED
         linePaint.strokeWidth = 10F
         linePaint.style = Paint.Style.STROKE
 
         pointPaint.color = Color.GREEN
-        pointPaint.strokeWidth = 20F // Big dots
+        pointPaint.strokeWidth = 20F 
         pointPaint.style = Paint.Style.FILL
     }
 
@@ -53,7 +51,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         
         if (results == null) return
 
-        // 1. Calculate the Offset to center the drawing
+        // 1. Calculate the Offset to center
         val scaledWidth = imageWidth * scaleFactor
         val scaledHeight = imageHeight * scaleFactor
         val offsetX = (width - scaledWidth) / 2
@@ -73,7 +71,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                     val start = landmark.get(it!!.start())
                     val end = landmark.get(it.end())
 
-                    // 3. Apply Offset to Lines as well
+                    // 3. Apply Offset to Lines 
                     val startX = start.x() * scaledWidth + offsetX
                     val startY = start.y() * scaledHeight + offsetY
                     val endX = end.x() * scaledWidth + offsetX
@@ -96,7 +94,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         this.imageHeight = imageHeight
         this.imageWidth = imageWidth
 
-        // Recalculate scale factor based on current view size
         scaleFactor = when (runningMode) {
             RunningMode.IMAGE,
             RunningMode.VIDEO -> {
@@ -106,10 +103,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                 max(width * 1f / imageWidth, height * 1f / imageHeight)
             }
         }
-        
-        // LOGGING: Verify coordinates
-        // Log.d("OverlayView", "Drawing! Scale: $scaleFactor ViewSize: ${width}x${height} ImageSize: ${imageWidth}x${imageHeight}")
-        
-        invalidate() // Trigger redraw
+        invalidate() 
     }
 }

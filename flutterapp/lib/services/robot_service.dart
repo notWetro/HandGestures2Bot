@@ -48,8 +48,8 @@ class RobotService {
       debugPrint('Successfully connected to ws://$_ipAddress:$_port');
     } catch (e) {
       debugPrint("Error connecting to robot: $e");
-      _channel = null; // Ensure channel is null on error
-      rethrow; // Re-throw the exception to be handled by the caller
+      _channel = null; 
+      rethrow; 
     }
   }
 

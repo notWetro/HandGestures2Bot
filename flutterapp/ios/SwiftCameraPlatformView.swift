@@ -1,6 +1,6 @@
 //
 //  SwiftCameraPlatformView.swift
-//  Runner
+//  
 //
 //  Created by Okan Demirbilek on 02.12.25.
 //
@@ -27,11 +27,9 @@ class SwiftCameraPlatformView: NSObject, FlutterPlatformView {
 
         cameraVC.methodChannel = channel
 
-        // IMPORTANT FIX:
-        // Embed camera ONLY inside this platform view
+        // camera ONLY inside this platform view
         embedCameraONLYInsideContainer()
 
-        // Handle Flutter calls
         channel.setMethodCallHandler(handleMethodCall)
     }
 
@@ -41,7 +39,6 @@ class SwiftCameraPlatformView: NSObject, FlutterPlatformView {
 
     private func embedCameraONLYInsideContainer() {
 
-        // Get the nearest FlutterViewController safely
         guard let parent = UIApplication.shared
             .connectedScenes
             .compactMap({ $0 as? UIWindowScene })

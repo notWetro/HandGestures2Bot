@@ -39,10 +39,10 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # --- FLUTTER PODS ---
+  # FLUTTER PODS
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
-  # --- MEDIAPIPE iOS ADD HERE ---
+  # MEDIAPIPE iOS ADD HERE 
   pod 'MediaPipeTasksVision'
 
 end

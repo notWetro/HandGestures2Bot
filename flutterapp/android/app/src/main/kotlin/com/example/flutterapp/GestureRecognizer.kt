@@ -8,7 +8,6 @@ import com.google.gson.reflect.TypeToken
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import kotlin.math.sqrt
 
-// 1. Data Model
 data class GestureTemplate(
     val name: String,
     val fingerprint: List<Float>
@@ -20,9 +19,6 @@ class GestureRecognizer(private val context: Context) {
     private val gson = Gson()
     private val PREFS_NAME = "GesturePrefs"
     private val KEY_GESTURES = "SavedGestures"
-
-    // LOWER = Stricter match. 
-    // 15.0 is a good starting point for normalized coordinates.
     private val MATCH_THRESHOLD = 15.0f 
 
     init {
@@ -34,7 +30,6 @@ class GestureRecognizer(private val context: Context) {
     fun saveTemplate(name: String, landmarks: List<NormalizedLandmark>) {
         val fingerprint = createFingerprint(landmarks)
         
-        // Overwrite if name exists
         templates.removeAll { it.name == name }
         templates.add(GestureTemplate(name, fingerprint))
         
@@ -98,14 +93,14 @@ class GestureRecognizer(private val context: Context) {
     private fun createFingerprint(landmarks: List<NormalizedLandmark>): List<Float> {
         val fingerprint = mutableListOf<Float>()
         
-        // 1. Use Wrist (Index 0) as Origin
+        // Use Wrist (Index 0) as Origin
         val wrist = landmarks[0]
 
-        // 2. Scale by hand size (Wrist to Middle Finger Tip)
+        // Scale by hand size (Wrist to Middle Finger Tip)
         val middleTip = landmarks[12]
         val scale = getDistance(wrist, middleTip)
 
-        // 3. Normalize all points
+        // Normalize all points
         for (landmark in landmarks) {
             fingerprint.add((landmark.x() - wrist.x()) / scale)
             fingerprint.add((landmark.y() - wrist.y()) / scale)

@@ -61,7 +61,7 @@ class DanceMove {
 }
 
 class DanceStep {
-  final String movement; // 'forward', 'left', 'right', 'stop'
+  final String movement; 
   final int durationMs;
 
   DanceStep({

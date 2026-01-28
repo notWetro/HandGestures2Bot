@@ -32,7 +32,6 @@ class MainActivity: FlutterActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var currentScanCallback: ScanCallback? = null
 
-    // UUIDs must match the Robot's Python implementation
     private val SERVICE_UUID = UUID.fromString("12345678-1234-5678-1234-56789abcdef0")
     private val SSID_UUID = UUID.fromString("12345678-1234-5678-1234-56789abcdef1")
     private val PASS_UUID = UUID.fromString("12345678-1234-5678-1234-56789abcdef2")
@@ -46,8 +45,6 @@ class MainActivity: FlutterActivity() {
 
         gestureRecognizer = GestureRecognizer(this)
 
-
-        // REGISTER FACTORY with 'this' (Activity) and 'binaryMessenger'
         flutterEngine
             .platformViewsController
             .registry
@@ -176,7 +173,6 @@ class MainActivity: FlutterActivity() {
                 val device = scanResult.device
                 val name = device.name
 
-                // Only notify Flutter if the device is a TurtleBot
                 if (name != null && name.contains("TurtleBot", ignoreCase = true)) {
                     handler.post {
                         bluetoothMethodChannel?.invokeMethod("onDeviceFound", mapOf(

@@ -69,20 +69,18 @@ class _CameraViewState extends State<CameraView> {
 
     // Start listening to the gesture service's stream FIRST
     _gestureSubscription = _gestureService.onGesture.listen((gesture) async {
-      debugPrint("📸 [GESTURE] received: '$gesture'");
-      debugPrint("📸 [STATE] _isDancePlaying = $_isDancePlaying");
+      debugPrint("[GESTURE] received: '$gesture'");
+      debugPrint("[STATE] _isDancePlaying = $_isDancePlaying");
 
       if (mounted) {
-        // Check if this gesture is assigned to a dance
         final dance = await _danceService.getDanceByGesture(gesture);
 
         debugPrint(
-          "🎵 [LOOKUP] dance = ${dance?.name}, assignedGesture = ${dance?.assignedGesture}",
+          "[LOOKUP] dance = ${dance?.name}, assignedGesture = ${dance?.assignedGesture}",
         );
 
         if (dance != null && !_isDancePlaying) {
-          debugPrint("🔥 [TRIGGER] starting dance '${dance.name}'");
-          // Play dance sequence
+          debugPrint("[TRIGGER] starting dance '${dance.name}'");
           setState(() {
             detectedGesture = gesture;
             commandHistory.insert(0, 'Dance: ${dance.name}');
@@ -91,7 +89,6 @@ class _CameraViewState extends State<CameraView> {
             }
           });
 
-          // Ensure the newly added dance entry is visible in the history
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scrollController.hasClients) {
               _scrollController.animateTo(
@@ -102,7 +99,6 @@ class _CameraViewState extends State<CameraView> {
             }
           });
 
-          // Yield briefly so the UI can rebuild before starting the dance
           await Future.delayed(const Duration(milliseconds: 50));
 
           debugPrint(
@@ -110,14 +106,13 @@ class _CameraViewState extends State<CameraView> {
           );
           await _playDance(dance);
         } else if (!_isDancePlaying) {
-          debugPrint("➡️ [COMMAND] normal command for gesture '$gesture'");
+          debugPrint("[COMMAND] normal command for gesture '$gesture'");
 
           // Normal gesture command
           String newCommand = _mapGestureToCommand(gesture);
           setState(() {
             detectedGesture = gesture;
             robotCommand = newCommand;
-            // Add command to history (keep last 50)
             commandHistory.insert(0, newCommand);
             if (commandHistory.length > 50) {
               commandHistory.removeLast();
@@ -137,21 +132,21 @@ class _CameraViewState extends State<CameraView> {
   }
 
   Future<void> _playDance(DanceMove dance) async {
-    debugPrint("🎬 [PLAY] ENTER _playDance for '${dance.name}'");
-    debugPrint("🎬 [PLAY] steps count = ${dance.steps.length}");
-    debugPrint("🎬 [PLAY] musicPath = ${dance.musicPath}");
+    debugPrint("PLAY ENTER _playDance for '${dance.name}'");
+    debugPrint("PLAY steps count = ${dance.steps.length}");
+    debugPrint("PLAY musicPath = ${dance.musicPath}");
 
     _isDancePlaying = true;
 
     // Start music
     if (dance.musicPath != null && dance.musicPath!.isNotEmpty) {
       await _musicController.play(dance.musicPath!);
-      debugPrint("🎵 [MUSIC] started");
+      debugPrint("MUSIC started");
     }
 
     for (final step in dance.steps) {
       debugPrint(
-        "🤖 [STEP] sending command '${step.movement}' for ${step.durationMs}ms",
+        "STEP sending command '${step.movement}' for ${step.durationMs}ms",
       );
 
       if (!mounted || !_isDancePlaying) break;
@@ -166,7 +161,7 @@ class _CameraViewState extends State<CameraView> {
     }
 
     // Stop at the end
-    debugPrint("🛑 [PLAY] stopping robot & music");
+    debugPrint("PLAY stopping robot & music");
     _robotService.sendCommand('stop');
     setState(() {
       robotCommand = 'stop';
@@ -174,7 +169,7 @@ class _CameraViewState extends State<CameraView> {
 
     // Stop music
     await _musicController.stop();
-    debugPrint("🏁 [PLAY] FINISHED dance '${dance.name}'");
+    debugPrint("PLAY FINISHED dance '${dance.name}'");
     _isDancePlaying = false;
   }
 

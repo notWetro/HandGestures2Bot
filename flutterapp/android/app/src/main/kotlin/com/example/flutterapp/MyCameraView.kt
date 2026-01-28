@@ -18,7 +18,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 
 class MyCameraView(
-    private val activity: MainActivity, // Needs Activity for Lifecycle
+    private val activity: MainActivity, 
     messenger: BinaryMessenger, 
     id: Int
 ) : PlatformView {
@@ -29,14 +29,11 @@ class MyCameraView(
     private lateinit var previewView: PreviewView
     private lateinit var overlayView: OverlayView
     
-    // Logic Variables
     private val gestureRecognizer = activity.gestureRecognizer
     private var lastGesture = "UNKNOWN"
     
-    // Flag to capture next frame
     private var pendingSaveName: String? = null
 
-    // Channel
     private val methodChannel: MethodChannel = MethodChannel(messenger, "gesture_channel")
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
 
@@ -59,12 +56,9 @@ class MyCameraView(
                     result.success(null)
                 }
                 "getGestureList" -> {
-                    // Ask the brain for the list
                     val names = gestureRecognizer.getSavedGestureNames()
-                    // Send List<String> back to Flutter
                     result.success(names)
                 }
-                // -------------------
                 else -> {
                     result.notImplemented()
                 }
@@ -86,7 +80,7 @@ class MyCameraView(
                             // --- SAVE LOGIC ---
                             if (pendingSaveName != null) {
                                 gestureRecognizer.saveTemplate(pendingSaveName!!, landmarks)
-                                pendingSaveName = null // Reset flag
+                                pendingSaveName = null 
                                 methodChannel.invokeMethod("onSaveSuccess", "Saved!")
                             }
 
