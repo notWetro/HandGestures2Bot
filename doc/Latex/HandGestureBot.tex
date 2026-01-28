@@ -358,6 +358,50 @@ would have introduced a significant risk of additional errors and development de
 and development efforts were concentrated on Android, where the coexistence of MediaPipe and
 Gemma can be implemented in a technically stable and reliable manner.
 
+\section{Lessons Learned}
+
+One of the key lessons learned during the project was the importance of thoroughly evaluating technology choices early on, especially when combining multiple frameworks or pipelines. In our case, the interaction between two frameworks led to unforeseen compatibility issues, particularly on the iOS platform. Future projects should include early feasibility studies or small proof-of-concept implementations to identify such risks in advance.
+
+Another significant lesson was that developing a cross-platform application using Flutter is more complex than initially expected. While Flutter simplifies multi-platform development in theory, certain functionalities still required platform-specific (native) implementations. This resulted in duplicated effort and increased development time. The project highlighted that cross-platform solutions can introduce “unknown unknowns” that only emerge during implementation.
+
+We also learned the importance of clearly defining required features and corresponding hardware dependencies at the beginning of the project. Some features were initially planned without fully understanding the hardware or system constraints they imposed. This led to design changes later in the development process, which could have been avoided with more detailed upfront planning.
+
+A related lesson emerged from the integration of AI functionality. The application was originally designed to operate without an internet connection by relying on local processing. However, later decisions—such as integrating the ElevenLabs API—reintroduced the requirement for internet connectivity. This demonstrated the need to carefully evaluate architectural decisions and their long-term implications before implementation.
+
+Additionally, the project emphasized the value of iterative testing and early integration. Several issues only became apparent once different system components were combined. Continuous integration and incremental testing would help detect such problems earlier in future projects.
+
+Finally, from a team perspective, we learned the importance of clear communication and documentation. Regular alignment on technical decisions and explicit documentation of assumptions helped reduce misunderstandings and improved collaboration throughout the project.
+\newpage
+\section{Evaluation}
+
+Table~\ref{tab:evaluation} summarizes the extent to which the implemented features achieved their intended objectives based on manual testing.
+
+\begin{table}[h]
+	\centering
+	\caption{Evaluation of Implemented Features}
+	\label{tab:evaluation}
+	\begin{tabular}{|p{4.5cm}|p{6cm}|p{3cm}|}
+		\hline
+		\textbf{Feature / Functionality} & \textbf{Objective} & \textbf{Degree of Achievement} \\
+		\hline
+		Hand Gesture Recognition with Editing & Enable reliable hand recognition and allow users to create and edit custom gestures & Achieved \\
+		\hline
+		Bluetooth Provisioning & Establish and maintain a stable Bluetooth connection between the app and the robot & Achieved \\
+		\hline
+		Dance Gestures via Hand Gestures & Allow users to manually define dance movements and trigger them using gestures & Achieved \\
+		\hline
+		AI-Based Processing for Movements & Use a local LLM (Gemma) to process text input and generate movement commands & Achieved \\
+		\hline
+		AI-Based Processing for Dance Commands & Automatically generate dance commands using AI-based reasoning & Not achieved \\
+		\hline
+		System Stability & Ensure stable operation without developer intervention and maintain connection reliability & Mostly achieved \\
+		\hline
+		Cross-Platform Application (Flutter) & Provide full functionality across multiple platforms using Flutter & Mostly not achieved \\
+		\hline
+	\end{tabular}
+\end{table}
+
+
 % =================================================
 % APPENDIX
 % =================================================
@@ -369,30 +413,95 @@ Gemma can be implemented in a technically stable and reliable manner.
 
 The development of the \textit{HandGestures2Bot} project followed an iterative, sprint-based workflow inspired by agile methodologies. Task planning and progress tracking were organized using a Trello board, which was structured into product backlog, sprint backlog, in-progress, done, impediments, and risks columns.
 
-\paragraph{Initial Planning and Concept Phase}
+\subsubsection{Initial Planning and Concept Phase}
 During the initial sprints, the team focused on defining the project vision, identifying core use cases, and assigning group roles. Key conceptual tasks included the definition of gesture-based robot control scenarios, safety requirements such as emergency stopping, and the selection of suitable technologies. At this stage, the Raspberry Pi and ROS2 environment were prepared, and the overall communication pipeline (mobile client → WebSocket → ROS2 → robot) was specified.
 
-\paragraph{Core Implementation Sprints}
+\subsubsection{Core Implementation Sprints}
 Subsequent sprints concentrated on the technical implementation of the system. Major completed tasks included setting up the ROS2 Humble environment, deploying TurtleBot3 both in simulation and on real hardware, and implementing a WebSocket server on the embedded side. In parallel, the mobile client was developed using Flutter, and MediaPipe was integrated to enable real-time hand gesture recognition on the smartphone. A crucial milestone was the successful transmission of gesture commands as JSON messages over WebSocket and their conversion into ROS2 \texttt{/cmd\_vel} velocity commands. Safety mechanisms such as a watchdog-based emergency stop were implemented to ensure that the robot halts automatically in case of connection loss or missing commands.
 
-\paragraph{Integration and Testing Phase}
+\subsubsection{Integration and Testing Phase}
 Later sprints focused on system integration and validation. Gesture-to-motion mapping was refined, network latency was tested under Wi-Fi conditions, and the full control pipeline was verified both in Gazebo simulation and on a physical TurtleBot3 robot. Particular attention was paid to reliability, command frequency, and fail-safe behavior to prevent unintended robot movement.
 
-\paragraph{Completed and Ongoing Work}
-At the time of documentation, the core objectives of gesture-based robot control via WebSocket were fully achieved. Tasks related to robot control, WebSocket communication, gesture recognition, and emergency stopping were marked as completed. Additional features such as voice control, camera streaming, and cloud-based inference were identified as future work and remain in the backlog for potential extension.
-
-Overall, the sprint-based development process enabled incremental progress, early testing on real hardware, and continuous refinement of both software architecture and safety mechanisms.
+\subsubsection{Completed and Ongoing Work}
+At the time of documentation, the core objectives of gesture-based robot control via WebSocket were fully achieved. Tasks related to robot control, WebSocket communication, gesture recognition, and emergency stopping were marked as completed. Additional features such as voice control, camera streaming, and cloud-based inference were identified as future work and remain in the backlog for potential extension. Overall, the sprint-based development process enabled incremental progress, early testing on real hardware, and continuous refinement of both software architecture and safety mechanisms.
 
 
-\subsection{Screenshots Reference}
+\subsubsection{Screenshots Reference}
 Screenshots are stored in a separate \texttt{screenshots/} directory.
 In the main document, screenshots are not included to avoid bloating.
-Instead, screenshots can be referenced by filename or included here.
 
-\subsection{Additional Diagrams}
-Additional diagrams such as detailed sequence diagrams, class diagrams, or extended wireframes may be placed here.
 
+
+\newpage
 \subsection{Verwendung generativer KI-Systeme}
+\subsubsection{DeepL Write}
 
+DeepL Write was used to linguistically revise German text passages that had already been written by the author. The focus was in particular on:
+\begin{itemize}
+	\item correcting grammar and spelling,
+	\item stylistic refinement,
+	\item improving readability and sentence structure.
+\end{itemize}
+
+In several cases, text passages were revised multiple times because certain phrasings were initially unsatisfactory or sounded linguistically unnatural.
+
+\subsubsection{Technical Support (LaTeX \& Presentation)}
+
+AI-based tools were used for the technical implementation of diagrams, formulas, and structural representations in order to transfer content that had already been developed by the author into \LaTeX{} or other presentation formats. The substantive statements within the diagrams are entirely based on the author’s own analysis; the AI served solely as a technical aid for formatting.
+
+\subsubsection{Grammarly }
+
+Grammarly  were used as additional support tools, particularly for more complex or longer sentence structures. In some cases language corrections had to be revised multiple times or rewritten in documentation. The final version of each text was carefully selected and manually reviewed.
+
+
+
+\subsection{Architectural Decision Records (ADRs)}
+
+This section documents the key architectural decisions made during the development of the project. Architectural Decision Records (ADRs) were used to capture important design choices, their context, and the rationale behind each decision. The ADRs are listed in chronological order and reflect decisions that significantly influenced the system architecture and implementation.
+
+\subsubsection{ADR 0001: Choosing ROS 2 as Robot Controller}
+
+\begin{description}
+	\item[\textbf{Decision}] ROS 2 was selected as the main framework for robot control.
+	\item[\textbf{Rationale}] ROS 2 provides reliable message-based communication, real-time capabilities, and strong support for modular robotic systems. Its widespread adoption and extensibility made it suitable for controlling the robot and integrating gesture-based commands.
+\end{description}
+
+\subsubsection*{ADR 0002: Using WebSockets for Gesture Input}
+
+\begin{description}
+	\item[\textbf{Decision}] WebSockets were chosen as the communication mechanism for transmitting gesture input from the mobile application to the robot system.
+	\item[\textbf{Rationale}] WebSockets enable low-latency, bidirectional communication, which is essential for real-time gesture-based control. This approach allows continuous data streaming and immediate feedback between the user interface and the robot.
+\end{description}
+
+\subsubsection*{ADR 0003: Creating a Custom Python Package}
+
+\begin{description}
+	\item[\textbf{Decision}] A custom Python package was developed to handle gesture processing and command generation.
+	\item[\textbf{Rationale}] Creating a dedicated Python package improved modularity, maintainability, and code reuse. It also enabled seamless integration with ROS 2 nodes while keeping gesture-related logic encapsulated and extensible.
+\end{description}
+
+\subsubsection{ADR 0004: Using Twist Messages for Robot Control}
+
+\begin{description}
+	\item[\textbf{Decision}] ROS 2 \texttt{Twist} messages were used to control the robot’s linear and angular motion.
+	\item[\textbf{Rationale}] \texttt{Twist} messages are a standard and widely supported ROS message type for expressing velocity commands. Their use ensured compatibility with existing robot control stacks and simplified motion command implementation.
+\end{description}
+
+\subsubsection*{ADR 0005: Using Flutter for the Mobile Application}
+
+\begin{description}
+	\item[\textbf{Decision}] Flutter was selected as the framework for developing the mobile application.
+	\item[\textbf{Rationale}] Flutter was chosen for its rapid development capabilities and its potential for cross-platform support. While it enabled fast prototyping and UI development, platform-specific limitations ultimately prevented full cross-platform functionality, as discussed in the Evaluation and Lessons Learned sections.
+\end{description}
+
+\subsubsection{ADR 0006: Choosing MediaPipe for Hand Gesture Recognition}
+
+\begin{description}
+	\item[Decision] MediaPipe was selected as the framework for real-time hand gesture recognition.
+	\item[Rationale] MediaPipe provides efficient and accurate hand tracking with real-time performance, making it well suited for gesture-based human--robot interaction. Its reliability and performance justified its integration into the system.
+\end{description}
+
+\vspace{0.5em}
+The complete ADR documents are maintained separately in github repository and serve as a detailed reference for future development and architectural evolution of.
 
 \end{document}
