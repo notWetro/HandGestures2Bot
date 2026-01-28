@@ -1,0 +1,3 @@
+dartdoc:
+  include: ['eleven_labs_service']
+  showPrivateInterfaces: true
