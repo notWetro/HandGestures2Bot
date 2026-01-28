@@ -366,7 +366,23 @@ Gemma can be implemented in a technically stable and reliable manner.
 \section{Appendix}
 
 \subsection{Sprint History}
-If you have sprint logs, milestones, or GitHub issue history, you can include them here.
+
+The development of the \textit{HandGestures2Bot} project followed an iterative, sprint-based workflow inspired by agile methodologies. Task planning and progress tracking were organized using a Trello board, which was structured into product backlog, sprint backlog, in-progress, done, impediments, and risks columns.
+
+\paragraph{Initial Planning and Concept Phase}
+During the initial sprints, the team focused on defining the project vision, identifying core use cases, and assigning group roles. Key conceptual tasks included the definition of gesture-based robot control scenarios, safety requirements such as emergency stopping, and the selection of suitable technologies. At this stage, the Raspberry Pi and ROS2 environment were prepared, and the overall communication pipeline (mobile client → WebSocket → ROS2 → robot) was specified.
+
+\paragraph{Core Implementation Sprints}
+Subsequent sprints concentrated on the technical implementation of the system. Major completed tasks included setting up the ROS2 Humble environment, deploying TurtleBot3 both in simulation and on real hardware, and implementing a WebSocket server on the embedded side. In parallel, the mobile client was developed using Flutter, and MediaPipe was integrated to enable real-time hand gesture recognition on the smartphone. A crucial milestone was the successful transmission of gesture commands as JSON messages over WebSocket and their conversion into ROS2 \texttt{/cmd\_vel} velocity commands. Safety mechanisms such as a watchdog-based emergency stop were implemented to ensure that the robot halts automatically in case of connection loss or missing commands.
+
+\paragraph{Integration and Testing Phase}
+Later sprints focused on system integration and validation. Gesture-to-motion mapping was refined, network latency was tested under Wi-Fi conditions, and the full control pipeline was verified both in Gazebo simulation and on a physical TurtleBot3 robot. Particular attention was paid to reliability, command frequency, and fail-safe behavior to prevent unintended robot movement.
+
+\paragraph{Completed and Ongoing Work}
+At the time of documentation, the core objectives of gesture-based robot control via WebSocket were fully achieved. Tasks related to robot control, WebSocket communication, gesture recognition, and emergency stopping were marked as completed. Additional features such as voice control, camera streaming, and cloud-based inference were identified as future work and remain in the backlog for potential extension.
+
+Overall, the sprint-based development process enabled incremental progress, early testing on real hardware, and continuous refinement of both software architecture and safety mechanisms.
+
 
 \subsection{Screenshots Reference}
 Screenshots are stored in a separate \texttt{screenshots/} directory.
@@ -375,5 +391,8 @@ Instead, screenshots can be referenced by filename or included here.
 
 \subsection{Additional Diagrams}
 Additional diagrams such as detailed sequence diagrams, class diagrams, or extended wireframes may be placed here.
+
+\subsection{Verwendung generativer KI-Systeme}
+
 
 \end{document}
