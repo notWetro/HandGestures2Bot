@@ -1,6 +1,6 @@
 # HandGestures2Bot
 
-A multimodal robot control system for TurtleBot3 that enables intuitive interaction through hand gestures, voice commands, and AI-powered natural language processing. Control your robot with gestures captured by your smartphone camera, speak commands, or simply chat with the onboard Gemma AI assistant.
+A multimodal robot control system for TurtleBot3 that enables intuitive interaction through hand gestures, voice commands, and AI-powered natural language processing. Control your robot with gestures captured by your smartphone camera or speak commands.
 
 ![Project Demo](screenshots/Cam%20Page.jpeg)
 
@@ -18,13 +18,7 @@ A multimodal robot control system for TurtleBot3 that enables intuitive interact
 - Natural language processing via Gemma AI
 - Voice-activated robot movements
 
-### AI Assistant Integration
-- On-device Gemma AI model for natural language understanding
-- Conversational interface for robot control
-- Context-aware command interpretation
-
-### Cross-Platform Flutter App
-- Android, iOS, Windows, macOS, Linux support
+### Flutter App
 - Real-time WebSocket communication with robot
 - Bluetooth and WiFi configuration for robot
 - Dance choreography creator
@@ -45,20 +39,20 @@ A multimodal robot control system for TurtleBot3 that enables intuitive interact
 └──────────────┬──────────────────────────┘
                │ WebSocket
                ▼
-┌─────────────────────────────────────────┐
-│       ROS2 Humble Backend               │
+┌────────────────────────────────────────┐
+│       ROS2 Humble Backend              │
 │  ┌─────────────────────────────────┐   │
 │  │  WebSocket Server Node          │   │
-│  │  (hand_gestures_bot)           │   │
+│  │  (hand_gestures_bot)            │   │
 │  └──────────┬──────────────────────┘   │
-│             │                            │
+│             │                          │
 │  ┌──────────▼──────────────────────┐   │
 │  │  TurtleBot Controller           │   │
 │  └──────────┬──────────────────────┘   │
-│             │                            │
+│             │                          │
 │  ┌──────────▼──────────────────────┐   │
 │  │  Safety Scanner Node            │   │
-│  │  (LiDAR Collision Avoidance)   │   │
+│  │  (LiDAR Collision Avoidance)    │   │
 │  └──────────┬──────────────────────┘   │
 └─────────────┼──────────────────────────┘
               │ ROS2 /cmd_vel
@@ -257,6 +251,8 @@ HandGestures2Bot/
 └── test_robot.sh           # Test real robot
 ```
 
+## API-Key for ElevenLab
+To enable text-to-speech functionality in the Flutter app, you need to insert an API key from ElevenLab.
 
 ## Acknowledgments
 
@@ -265,10 +261,6 @@ HandGestures2Bot/
 - **ROS 2 Community** - Robot Operating System
 - **MediaPipe** - Hand tracking solution
 - **Google** - Gemma AI model
-
-## Contact
-
-For questions or support, please open an issue on GitHub.
 
 ---
 
