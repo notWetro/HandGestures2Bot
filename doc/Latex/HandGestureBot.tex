@@ -453,6 +453,30 @@ AI-based tools were used for the technical implementation of diagrams, formulas,
 
 Grammarly  were used as additional support tools, particularly for more complex or longer sentence structures. In some cases language corrections had to be revised multiple times or rewritten in documentation. The final version of each text was carefully selected and manually reviewed.
 
+\subsubsection{Gemma for Voice Command Interpretation}
+Gemma powers the voice control feature by interpreting natural language commands. 
+It runs locally on-device using the flutter\_gemma package and a 1B instruction-tuned model (gemma3-1B-it-int4.task).
+
+The AiService sends the user's transcribed speech to Gemma with a system prompt, instructing it to return a JSON object containing a "direction" for the robot and a "response" for the user.
+
+\paragraph{Workflow}
+\begin{enumerate}
+    \item User's speech is converted to text via the device's speech-to-text service.
+    \item The AiService sends this text to the Gemma model with a system prompt demanding JSON output. The prompt instructs the model to generate a direction (forward, backward, left, right, stop) and a short response.
+    \item Gemma returns a JSON payload, for example:
+    \begin{verbatim}
+{ "direction": "forward", "response": "Moving ahead!" }
+    \end{verbatim}
+    \item The \texttt{direction} is sent to the \texttt{RobotService} to command the robot's movement.
+    \item The \texttt{response} is spoken back to the user via a Text-to-Speech service for audible feedback.
+\end{enumerate}
+
+\paragraph{Key Files}
+\begin{itemize}
+    \item \textbf{Logic:} \texttt{flutterapp/lib/services/voice\_ai\_service/ai\_service.dart}
+    \item \textbf{UI:} \texttt{flutterapp/lib/views/voice\_view.dart}
+    \item \textbf{Model:} \texttt{flutterapp/assets/llm/gemma3-1B-it-int4.task}
+\end{itemize}
 
 
 \subsection{Architectural Decision Records (ADRs)}

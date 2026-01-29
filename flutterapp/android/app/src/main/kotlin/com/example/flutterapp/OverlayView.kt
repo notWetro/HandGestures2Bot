@@ -51,7 +51,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         
         if (results == null) return
 
-        // 1. Calculate the Offset to center
+        // Calculate the Offset to center
         val scaledWidth = imageWidth * scaleFactor
         val scaledHeight = imageHeight * scaleFactor
         val offsetX = (width - scaledWidth) / 2
@@ -60,7 +60,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         results?.let { handLandmarkerResult ->
             for (landmark in handLandmarkerResult.landmarks()) {
                 for (normalizedLandmark in landmark) {
-                    // 2. Apply Offset to X and Y
+                    // Apply Offset to X and Y
                     val x = normalizedLandmark.x() * scaledWidth + offsetX
                     val y = normalizedLandmark.y() * scaledHeight + offsetY
                     
@@ -71,7 +71,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
                     val start = landmark.get(it!!.start())
                     val end = landmark.get(it.end())
 
-                    // 3. Apply Offset to Lines 
+                    // Apply Offset to Lines 
                     val startX = start.x() * scaledWidth + offsetX
                     val startY = start.y() * scaledHeight + offsetY
                     val endX = end.x() * scaledWidth + offsetX
