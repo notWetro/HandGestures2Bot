@@ -1,0 +1,72 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\title{\textbf{Flutter Project Dependencies}}
+\author{HandGestures2Bot}
+\date{\today}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+  showstringspaces=false
+}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+
+This document provides a list of all tools, libraries, and compilers required to build, run, and develop the Flutter mobile application.
+
+\section{Flutter Mobile Application (\texttt{flutterapp/})}
+The mobile app is built using the Flutter framework.
+
+\subsection{Tooling \& Setup}
+\begin{itemize}
+    \item \textbf{Flutter SDK:} Version \texttt{\^{}3.9.2} or compatible is required.
+    \item \textbf{Installation:} From the \texttt{flutterapp/} directory, run the following command to install all Dart and Flutter dependencies:
+    \begin{lstlisting}[language=bash]
+flutter pub get
+    \end{lstlisting}
+\end{itemize}
+
+\subsection{Dart/Flutter Packages (\texttt{pubspec.yaml})}
+\begin{itemize}
+    \item \texttt{file\_picker}: Allows the user to select files from their device.
+    \item \texttt{web\_socket\_channel}: Manages the real-time WebSocket connection to the robot for sending commands.
+    \item \texttt{camera}: Accesses the device's camera to provide a video stream for gesture processing.
+    \item \texttt{permission\_handler}: Requests and manages necessary device permissions (e.g., camera, microphone).
+    \item \texttt{shared\_preferences}: Saves persistent key-value data.
+    \item \texttt{flutter\_gemma}: Runs the local Gemma AI model for interpreting voice commands. The model file (\texttt{gemma3-1B-it-int4.task}) was downloaded from Kaggle: \url{https://www.kaggle.com/models/google/gemma-3}.
+    \item \texttt{speech\_to\_text}: Captures the user's voice and converts it into text for the AI to process.
+    \item \texttt{flutter\_tts}: Provides basic, on-device text-to-speech feedback.
+    \item \texttt{path\_provider}: Finds correct, platform-specific paths on the device's filesystem for storing data.
+    \item \texttt{http}: Makes network requests to the ElevenLabs API for advanced text-to-speech.
+    \item \texttt{audioplayers}: Plays the audio files received from the ElevenLabs API.
+\end{itemize}
+
+\subsection{Android-Specific Dependencies (\texttt{build.gradle.kts})}
+These are installed automatically by Gradle during the build process.
+\begin{itemize}
+    \item \textbf{Java Development Kit (JDK):} Version 11.
+    \item \textbf{Android NDK:} Version specified by the Flutter SDK.
+    \item \textbf{MediaPipe:} \texttt{com.google.mediapipe:tasks-vision:0.10.26}. The hand landmarker model was sourced from \url{https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker}.
+    \item \textbf{AndroidX Camera:} \texttt{androidx.camera:*}
+    \item \textbf{Gson:} \texttt{com.google.code.gson:gson:2.10.1}.
+\end{itemize}
+
+
+
+\end{document}
