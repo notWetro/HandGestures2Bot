@@ -37,8 +37,8 @@
 % -------------------------------------------------
 % DOCUMENT INFO
 % -------------------------------------------------
-\title{\textbf{HandGesturesBot} \\ Project Documentation}
-\author{HandGesturesBot \\ Mobile Embedded and Development / Hochschule Aalen}
+\title{\textbf{HandGestures2Bot} \\ Project Documentation}
+\author{HandGestures2Bot \\ Mobile Embedded and Development / Hochschule Aalen}
 \date{\today}
 
 % -------------------------------------------------
@@ -62,13 +62,14 @@
 % 1. PROJECT OVERVIEW AND GOAL
 % =================================================
 \section{Project Overview and Goal}
-HandGestures2Bot is a project that enables controlling a TurtleBot robot using hand gestures captured via a mobile application.
+HandGestures2Bot is a project that enables controlling a TurtleBot robot using hand gestures captured or voice  via a mobile application.
 The main goal is to provide an intuitive and modern way of robot control without traditional controllers, by using gesture recognition and network communication.
 
 \subsection{Goal of the Project}
 The main objectives of this project are:
 \begin{itemize}[leftmargin=1.5cm]
     \item Provide a gesture-based robot control mechanism.
+    \item Provide a voice-based robot control mechanism.
     \item Enable an easy setup process for connecting the robot and the mobile app.
     \item Ensure the system works reliably in a real environment (WiFi + Bluetooth provisioning).
     \item Keep the interaction focused on user experience and usability.
@@ -171,7 +172,7 @@ The focus is on interactions between user/app/robot/network and not on internal 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\textwidth]{figures/use_case_diagram_placeholder.png}
-    \caption{External Sequence Diagram}
+    \caption{Scenario 1 Sequence Diagram}
 \end{figure}
 
 
@@ -277,9 +278,9 @@ This section describes the most important runtime interactions between the main 
 \begin{enumerate}[leftmargin=1.5cm]
 	\item The user speaks a command in the voice control view.
 	\item The app converts speech to text (STT).
-	\item The AI service interprets the text and generates a movement command.
+	\item The AI service  interprets the text and generates a movement command.
 	\item The command is sent via WebSocket to the robot (same path as gesture control).
-	\item Optional TTS feedback is played to confirm the action.
+	\item Chosen ElevenLabs  opsion sends feedback to play the voice action.
 \end{enumerate}
 
 
@@ -323,6 +324,7 @@ This is necessary to avoid plagiarism assumptions.
 \begin{itemize}[leftmargin=1.5cm]
 	\item ElevenLabs Text-to-Speech API (cloud service)
 	\item MediaPipe hand landmark model file (\texttt{hand\_landmarker.task})
+	\item GEMMA LLM ai Bot
 \end{itemize}
 
 \subsection{Reused / Preexisting Components}
@@ -331,6 +333,7 @@ This is necessary to avoid plagiarism assumptions.
 	\item ROS 2 Humble and TurtleBot3 packages (e.g., bringup and Gazebo simulation)
 	\item Preinstalled ROS 2 simulation packages on the provided Ubuntu virtual maschine from lab lecture (used for testing and simulation)
 	\item MediaPipe framework and pretrained hand landmark model
+	\item GEMMA LLM ai Bot
 \end{itemize}
 
 
@@ -422,8 +425,8 @@ Subsequent sprints concentrated on the technical implementation of the system. M
 \subsubsection{Integration and Testing Phase}
 Later sprints focused on system integration and validation. Gesture-to-motion mapping was refined, network latency was tested under Wi-Fi conditions, and the full control pipeline was verified both in Gazebo simulation and on a physical TurtleBot3 robot. Particular attention was paid to reliability, command frequency, and fail-safe behavior to prevent unintended robot movement.
 
-\subsubsection{Completed and Ongoing Work}
-At the time of documentation, the core objectives of gesture-based robot control via WebSocket were fully achieved. Tasks related to robot control, WebSocket communication, gesture recognition, and emergency stopping were marked as completed. Additional features such as voice control, camera streaming, and cloud-based inference were identified as future work and remain in the backlog for potential extension. Overall, the sprint-based development process enabled incremental progress, early testing on real hardware, and continuous refinement of both software architecture and safety mechanisms.
+\subsubsection{Completed Features and Improvements}
+At the time of documentation, the core objectives of gesture-based robot control via WebSocket were fully achieved. Tasks related to robot control, WebSocket communication, gesture recognition, and emergency stopping were marked as completed. Overall for the future the crossplatform for the application can be implemented with another pipeline due to absence of IOS part. Additionaly the voice command for dancing  could be also implemented for the future with advanced llm ai bot.
 
 
 \subsubsection{Screenshots Reference}
@@ -544,15 +547,15 @@ This table lists the files created or modified by the project team.
 \hline
 \multicolumn{5}{|l|}{\textbf{Shell Scripts}} \\
 \hline
-\texttt{- start\_bluetooth\_provisioning.sh} & & & & \\
-\texttt{- start\_boot.sh} & & & & \\
-\texttt{- start\_robot.sh} & & & & \\
-\texttt{- start\_server.sh} & & & & \\
-\texttt{- start\_sim.sh} & & & & \\
-\texttt{- stop\_robot.sh} & & & & \\
-\texttt{- stop\_sim.sh} & & & & \\
-\texttt{- test\_robot.sh} & & & & \\
-\texttt{- test\_sim.sh} & & & & \\
+\texttt{- start\_bluetooth\_provisioning.sh} & & &Author& \\
+\texttt{- start\_boot.sh} & & &Author & \\
+\texttt{- start\_robot.sh} & & &Author& \\
+\texttt{- start\_server.sh} & & & Author& \\
+\texttt{- start\_sim.sh} & & &Author& \\
+\texttt{- stop\_robot.sh} & & &Author& \\
+\texttt{- stop\_sim.sh} & & & Author& \\
+\texttt{- test\_robot.sh} & & &Author& \\
+\texttt{- test\_sim.sh} & & &Author& \\
 \hline
 \multicolumn{5}{|l|}{\textbf{Flutter Application (Dart)}} \\
 \hline
@@ -604,17 +607,17 @@ This table lists the files created or modified by the project team.
 \hline
 \multicolumn{5}{|l|}{\textbf{ROS2 Workspace (Python)}} \\
 \hline
-\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash \_\_init\_\_.py} & & & & \\
-\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash gesture\_handler.py} & & & & \\
-\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash safety\_scanner.py} & & & & \\
-\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash server.py} & & & & \\
-\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash turtlebot\_controller.py} & & & & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash \_\_init\_\_.py} & & &Author & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash gesture\_handler.py} & & &Author & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash safety\_scanner.py} & & &Author & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash server.py} & & &Author & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash turtlebot\_controller.py} & & &Author & \\
 \hline
 \multicolumn{5}{|l|}{\textbf{Provisioning Scripts (Python)}} \\
 \hline
-\texttt{- provisioning\slash bluetooth\_wifi\slash ble\_basic\_check.py} & & & & \\
-\texttt{- provisioning\slash bluetooth\_wifi\slash bluetooth\_provisioning.py} & & & & \\
-\texttt{- provisioning\slash bluetooth\_wifi\slash scan\_ble.py} & & & & \\
+\texttt{- provisioning\slash bluetooth\_wifi\slash ble\_basic\_check.py} & & &Author & \\
+\texttt{- provisioning\slash bluetooth\_wifi\slash bluetooth\_provisioning.py} & & &Author & \\
+\texttt{- provisioning\slash bluetooth\_wifi\slash scan\_ble.py} & & &Author & \\
 
 \end{longtable}
 
