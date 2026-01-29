@@ -6,12 +6,12 @@ import json
 
 from bleak import BleakScanner, BleakClient
 
-# Your robot's BLE identifiers
+
 SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
 CHAR_STATUS_UUID = "12345678-1234-5678-1234-56789abcdef3"
 CHAR_ACK_UUID = "12345678-1234-5678-1234-56789abcdef5"
 
-# Optional overrides via env vars
+
 TARGET_NAME = os.environ.get("TARGET_NAME", "TurtleBot3-Provisioning")
 ADDRESS = os.environ.get("ADDRESS")  
 SCAN_TIMEOUT = float(os.environ.get("SCAN_TIMEOUT", "6"))
@@ -66,10 +66,10 @@ async def main():
             except Exception as e:
                 print(f"ACK write skipped: {e}")
 
-            # Try a direct read of status first (works even if service discovery API differs)
+            
             try:
                 raw = await client.read_gatt_char(CHAR_STATUS_UUID)
-                # Print both raw bytes and decoded text when possible
+                
                 print(f"Status bytes: {raw}")
                 try:
                     print("Status text:", raw.decode("utf-8"))
@@ -78,17 +78,17 @@ async def main():
             except Exception as e:
                 print(f"Direct status read skipped: {e}")
 
-            # Confirm the service exists (handle Bleak API differences)
+            # Confirm the service exists 
             try:
                 services = None
                 if hasattr(client, "get_services"):
                     try:
-                        services = await client.get_services()  # Bleak >= 0.20
+                        services = await client.get_services()  
                     except TypeError:
                         # Some versions have sync get_services
                         services = client.get_services()
                 elif hasattr(client, "services"):
-                    services = client.services  # Older Bleak versions
+                    services = client.services  
 
                 if services is not None:
                     has_service = any(getattr(s, "uuid", "").lower() == SERVICE_UUID.lower() for s in services)

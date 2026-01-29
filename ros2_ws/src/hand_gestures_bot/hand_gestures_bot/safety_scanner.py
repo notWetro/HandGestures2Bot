@@ -129,9 +129,7 @@ class SafetyScanner(Node):
         # -------------------------------------------------------------------------
         # QoS Profiles
         # -------------------------------------------------------------------------
-        # TurtleBot3's LiDAR publishes with BEST_EFFORT reliability.
-        # Subscriber MUST use BEST_EFFORT to be compatible (RELIABLE subscriber
-        # cannot receive from BEST_EFFORT publisher in ROS 2).
+        
         scan_qos = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
             depth=10,
@@ -493,7 +491,7 @@ class SafetyScanner(Node):
             self.obstacle_status_pub.publish(status_msg)
             return
 
-        # Evaluate all three sectors
+        
         left_m = self.get_sector_min_distance(
             self.latest_scan, self.LEFT_SECTOR_MIN_DEG, self.LEFT_SECTOR_MAX_DEG
         )
@@ -507,13 +505,13 @@ class SafetyScanner(Node):
             self.latest_scan, self.BEHIND_SECTOR_MIN_DEG, self.BEHIND_SECTOR_MAX_DEG
         )
 
-        # Convert to centimeters and format output
+        
         left_cm = self.meters_to_cm_string(left_m)
         center_cm = self.meters_to_cm_string(center_m)
         right_cm = self.meters_to_cm_string(right_m)
         behind_cm = self.meters_to_cm_string(behind_m)
 
-        # Build distances dict for status message
+       
         distances = {}
         obstacle_sectors = []
         
@@ -535,7 +533,7 @@ class SafetyScanner(Node):
             if behind_m < self.SAFETY_DISTANCE_M:
                 obstacle_sectors.append("behind")
 
-        # Publish status EVERY timer tick (every 2 seconds)
+        
         import json
         status_msg = String()
         status_msg.data = json.dumps({
@@ -548,7 +546,7 @@ class SafetyScanner(Node):
         })
         self.obstacle_status_pub.publish(status_msg)
 
-        # Add warning indicator if below safety threshold
+        
         def add_warning(val_m: Optional[float], val_str: str) -> str:
             if val_m is not None and val_m < self.SAFETY_DISTANCE_M:
                 return f"{val_str} ⚠️"

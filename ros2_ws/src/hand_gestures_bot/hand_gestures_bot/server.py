@@ -10,8 +10,8 @@ from std_msgs.msg import String
 from .turtlebot_controller import TurtleBotController
 from .gesture_handler import MovementHandler
 
-movement_handler = None  # Global reference
-connected_clients = set()  # Track connected WebSocket clients
+movement_handler = None  
+connected_clients = set()  
 
 
 def get_ip_address():
@@ -113,11 +113,11 @@ def main(args=None):
     bot_node = TurtleBotController()
     movement_handler = MovementHandler(bot_node)
 
-    # Get the event loop for async operations
+    
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
-    # Create obstacle status subscriber
+    
     obstacle_sub = ObstacleStatusSubscriber(bot_node, loop)
 
     ros_thread = Thread(target=rclpy.spin, args=(bot_node,), daemon=True)

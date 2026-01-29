@@ -180,7 +180,7 @@ def connect_wifi(ssid: str, password: str) -> Tuple[bool, Optional[str]]:
     prev_nmcli = _nmcli_cmd()
     prev_nm_conn = _nmcli_get_active_connection(prev_nmcli) if prev_nmcli else None
     
-    # Method 1: Try wpa_cli (for wpa_supplicant managed interfaces)
+    # Method 1: Try wpa_cli 
     try:
         # Add network
         result = subprocess.run(
