@@ -67,6 +67,103 @@ These are installed automatically by Gradle during the build process.
     \item \textbf{Gson:} \texttt{com.google.code.gson:gson:2.10.1}.
 \end{itemize}
 
+\section{Robot-Side Software (\texttt{robot/}, \texttt{ros2\_ws/})}
+The robot side handles Bluetooth-based Wi-Fi provisioning, WebSocket communication, and ROS~2-based robot control.
+
+\subsection{Bluetooth Provisioning (Python)}
+Bluetooth provisioning enables the robot to receive Wi-Fi credentials via BLE and configure network access.
+
+\subsubsection{Python Packages}
+Installed via \texttt{pip3} unless otherwise noted.
+\begin{itemize}
+	\item \texttt{bluezero}: BLE GATT server library built on BlueZ and GLib.
+	\item \texttt{netifaces}: Network interface and IP address utilities.
+	\item \texttt{bleak}: BLE client utilities used by helper and diagnostic scripts.
+\end{itemize}
+
+\subsubsection{Python Runtime Bindings}
+Required for GLib event loop integration.
+\begin{itemize}
+	\item \texttt{python3-gi}: PyGObject bindings for Python.
+	\item \texttt{gir1.2-glib-2.0}: GLib introspection data.
+\end{itemize}
+
+\subsubsection{System Services and Tools}
+These dependencies must be installed at the OS level.
+\begin{itemize}
+	\item \textbf{BlueZ}: Bluetooth stack (\texttt{bluetoothd}, \texttt{libbluetooth}).
+	\item \textbf{D-Bus}: Required for Bluetooth and network control.
+	\item \textbf{NetworkManager}: \texttt{nmcli} used for Wi-Fi configuration.
+	\item \textbf{wpa\_supplicant}: Alternative Wi-Fi management backend.
+	\item \textbf{dhclient}: DHCP client for IP assignment.
+\end{itemize}
+
+\subsubsection{Installation Hint}
+The repository provides a helper script that installs core Python dependencies:
+\begin{lstlisting}[language=bash]
+	pip3 install -U bluezero netifaces
+\end{lstlisting}
+
+\subsubsection{Service Scripts}
+\begin{itemize}
+	\item \texttt{start\_bluetooth\_provisioning.sh}: Launches BLE provisioning.
+	\item \texttt{start\_server.sh}: Started automatically after successful provisioning.
+\end{itemize}
+\newpage
+\subsection{ROS~2 Workspace (\texttt{ros2\_ws/})}
+The ROS~2 workspace contains the robot control logic and communication server.
+
+\subsubsection{ROS~2 Runtime}
+Installed via system package manager or \texttt{rosdep}.
+\begin{itemize}
+	\item \texttt{rclpy}: ROS~2 Python client library.
+\end{itemize}
+
+\subsubsection{ROS~2 Message Packages}
+\begin{itemize}
+	\item \texttt{geometry\_msgs}
+	\item \texttt{std\_msgs}
+	\item \texttt{turtlebot3\_msgs}
+\end{itemize}
+
+\subsubsection{Python Packages Used by ROS Nodes}
+\begin{itemize}
+	\item \texttt{websockets}: Asynchronous WebSocket server for app--robot communication.
+	\item \texttt{netifaces}: Used for dynamic IP discovery.
+	\item \texttt{setuptools}: Required for \texttt{ament\_python} packaging.
+\end{itemize}
+
+\subsubsection{Build and Packaging}
+\begin{itemize}
+	\item \textbf{Build Type:} \texttt{ament\_python}
+	\item Dependencies declared in \texttt{package.xml} and \texttt{setup.py}
+	\item ROS~2 dependencies resolved via \texttt{apt} or \texttt{rosdep}
+\end{itemize}
+
+\subsection{Concrete Robot Provisioning Checklist (Linux)}
+\textbf{System Packages:}
+\begin{itemize}
+	\item BlueZ (Bluetooth daemon and libraries)
+	\item D-Bus, GLib, PyGObject
+	\item NetworkManager (\texttt{nmcli}) or \texttt{wpa\_supplicant}
+	\item ROS~2 base installation (for chosen distribution)
+\end{itemize}
+
+\textbf{Python Packages (\texttt{pip3}):}
+\begin{itemize}
+	\item \texttt{bluezero}
+	\item \texttt{netifaces}
+	\item \texttt{bleak}
+	\item \texttt{websockets}
+\end{itemize}
+
+\textbf{ROS~2 Packages (via \texttt{apt}/\texttt{rosdep}):}
+\begin{itemize}
+	\item \texttt{ros-<distro>-rclpy}
+	\item \texttt{ros-<distro>-geometry-msgs}
+	\item \texttt{ros-<distro>-std-msgs}
+	\item \texttt{ros-<distro>-turtlebot3-msgs}
+\end{itemize}
 
 
 \end{document}
