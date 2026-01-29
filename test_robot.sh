@@ -50,10 +50,10 @@ run_test() {
     local test_result="$2"  # 0 = pass, 1 = fail
     
     if [ "$test_result" -eq 0 ]; then
-        echo -e "  ${GREEN}✓ PASS${NC}: $test_name"
+        echo -e "  ${GREEN} PASS${NC}: $test_name"
         ((TESTS_PASSED++))
     else
-        echo -e "  ${RED}✗ FAIL${NC}: $test_name"
+        echo -e "  ${RED} FAIL${NC}: $test_name"
         ((TESTS_FAILED++))
     fi
 }
@@ -224,12 +224,12 @@ echo ""
 
 TOTAL_TESTS=$((TESTS_PASSED + TESTS_FAILED))
 if [ "$TESTS_FAILED" -eq 0 ]; then
-    echo -e "${GREEN}✓ All tests passed! Robot is ready.${NC}"
+    echo -e "${GREEN} All tests passed! Robot is ready.${NC}"
     exit 0
 elif [ "$TESTS_PASSED" -gt "$TESTS_FAILED" ]; then
-    echo -e "${YELLOW}⚠ Some tests failed. Check the issues above.${NC}"
+    echo -e "${YELLOW}Some tests failed. Check the issues above.${NC}"
     exit 1
 else
-    echo -e "${RED}✗ Multiple tests failed. Robot may not be functioning correctly.${NC}"
+    echo -e "${RED}Multiple tests failed. Robot may not be functioning correctly.${NC}"
     exit 1
 fi

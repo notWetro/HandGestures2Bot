@@ -57,26 +57,26 @@ echo ""
 echo -e "${YELLOW}Checking for remaining processes...${NC}"
 
 # Kill Gazebo (more aggressively)
-pkill -9 -f "gzserver" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gzserver"
-pkill -9 -f "gzclient" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gzclient"
-pkill -9 -f "gazebo" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed gazebo"
-pkill -9 -f "turtlebot3_gazebo" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed turtlebot3_gazebo"
-pkill -9 -f "robot_state_publisher" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed robot_state_publisher"
-pkill -9 -f "spawn_entity" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed spawn_entity"
+pkill -9 -f "gzserver" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed gzserver"
+pkill -9 -f "gzclient" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed gzclient"
+pkill -9 -f "gazebo" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed gazebo"
+pkill -9 -f "turtlebot3_gazebo" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed turtlebot3_gazebo"
+pkill -9 -f "robot_state_publisher" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed robot_state_publisher"
+pkill -9 -f "spawn_entity" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed spawn_entity"
 
 # Kill WebSocket server and Safety Scanner (force kill with -9)
-pkill -9 -f "start_server" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed start_server"
-pkill -9 -f "safety_scanner" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed safety_scanner"
-pkill -9 -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed hand_gestures_bot"
+pkill -9 -f "start_server" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed start_server"
+pkill -9 -f "safety_scanner" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed safety_scanner"
+pkill -9 -f "hand_gestures_bot" 2>/dev/null && echo -e "  ${GREEN}${NC} Killed hand_gestures_bot"
 
 # Kill any process using port 8765 (WebSocket port)
 if command -v lsof > /dev/null 2>&1; then
     PORT_PID=$(lsof -ti:8765 2>/dev/null)
     if [ -n "$PORT_PID" ]; then
-        kill -9 $PORT_PID 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed process on port 8765"
+        kill -9 $PORT_PID 2>/dev/null && echo -e "  ${GREEN}${NC} Killed process on port 8765"
     fi
 elif command -v fuser > /dev/null 2>&1; then
-    fuser -k 8765/tcp 2>/dev/null && echo -e "  ${GREEN}✓${NC} Killed process on port 8765"
+    fuser -k 8765/tcp 2>/dev/null && echo -e "  ${GREEN}${NC} Killed process on port 8765"
 fi
 
 # Wait for port release

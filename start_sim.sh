@@ -50,9 +50,9 @@ echo ""
 echo -e "${BLUE}[1/5]${NC} Sourcing ROS 2 Humble..."
 if [ -f /opt/ros/humble/setup.bash ]; then
     source /opt/ros/humble/setup.bash
-    echo -e "${GREEN}✓${NC} ROS 2 Humble sourced successfully"
+    echo -e "${GREEN}${NC} ROS 2 Humble sourced successfully"
 else
-    echo -e "${RED}✗ ERROR: ROS 2 Humble not found at /opt/ros/humble/setup.bash${NC}"
+    echo -e "${RED} ERROR: ROS 2 Humble not found at /opt/ros/humble/setup.bash${NC}"
     exit 1
 fi
 
@@ -63,9 +63,9 @@ echo -e "${BLUE}[2/7]${NC} Building ROS 2 workspace..."
 cd "$WS"
 colcon build --symlink-install 2>&1 | tee "$LOG_DIR/build.log"
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
-    echo -e "${GREEN}✓${NC} Workspace built successfully"
+    echo -e "${GREEN}${NC} Workspace built successfully"
 else
-    echo -e "${RED}✗ ERROR: Build failed. Check $LOG_DIR/build.log${NC}"
+    echo -e "${RED} ERROR: Build failed. Check $LOG_DIR/build.log${NC}"
     exit 1
 fi
 
@@ -75,9 +75,9 @@ fi
 echo -e "${BLUE}[3/7]${NC} Sourcing workspace setup..."
 if [ -f "$WS/install/setup.bash" ]; then
     source "$WS/install/setup.bash"
-    echo -e "${GREEN}✓${NC} Workspace setup sourced"
+    echo -e "${GREEN}${NC} Workspace setup sourced"
 else
-    echo -e "${RED}✗ ERROR: Workspace install/setup.bash not found${NC}"
+    echo -e "${RED} ERROR: Workspace install/setup.bash not found${NC}"
     exit 1
 fi
 
@@ -88,8 +88,8 @@ echo -e "${BLUE}[4/7]${NC} Setting environment variables..."
 export TURTLEBOT3_MODEL=burger
 export ROS_DOMAIN_ID=0
 export ROS_LOCALHOST_ONLY=0
-echo -e "${GREEN}✓${NC} TURTLEBOT3_MODEL=$TURTLEBOT3_MODEL"
-echo -e "${GREEN}✓${NC} ROS_DOMAIN_ID=$ROS_DOMAIN_ID"
+echo -e "${GREEN}${NC} TURTLEBOT3_MODEL=$TURTLEBOT3_MODEL"
+echo -e "${GREEN}${NC} ROS_DOMAIN_ID=$ROS_DOMAIN_ID"
 
 # From here on, don't exit on error - we want to try starting everything
 set +e
@@ -98,7 +98,7 @@ set +e
 # Step 5: Launch Gazebo Simulation (background)
 # =============================================================================
 echo -e "${BLUE}[5/7]${NC} Launching Gazebo simulation..."
-echo -e "${YELLOW}⏳${NC} Gazebo may take some time to load..."
+echo -e "${YELLOW}${NC} Gazebo may take some time to load..."
 
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py > "$LOG_DIR/gazebo_sim.log" 2>&1 &
 GAZEBO_PID=$!
@@ -109,10 +109,10 @@ echo -e "   Waiting for Gazebo to initialize (10 seconds)..."
 sleep 10
 
 if kill -0 $GAZEBO_PID 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} Gazebo simulation started (PID: $GAZEBO_PID)"
+    echo -e "${GREEN}${NC} Gazebo simulation started (PID: $GAZEBO_PID)"
     echo -e "   Log: $LOG_DIR/gazebo_sim.log"
 else
-    echo -e "${RED}✗ ERROR: Gazebo simulation failed to start${NC}"
+    echo -e "${RED} ERROR: Gazebo simulation failed to start${NC}"
     echo -e "   Check log: $LOG_DIR/gazebo_sim.log"
     echo -e "   Common issues:"
     echo -e "     - Gazebo not installed: sudo apt install ros-humble-turtlebot3-gazebo"
@@ -146,10 +146,10 @@ echo "$SCANNER_PID safety_scanner" >> "$PID_FILE"
 
 sleep 2
 if kill -0 $SCANNER_PID 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} Safety Scanner started (PID: $SCANNER_PID)"
+    echo -e "${GREEN}${NC} Safety Scanner started (PID: $SCANNER_PID)"
     echo -e "   Log: $LOG_DIR/safety_scanner.log"
 else
-    echo -e "${RED}✗ ERROR: Safety Scanner failed to start${NC}"
+    echo -e "${RED} ERROR: Safety Scanner failed to start${NC}"
     echo -e "   Check log: $LOG_DIR/safety_scanner.log"
 fi
 
@@ -168,10 +168,10 @@ echo "$SERVER_PID websocket_server" >> "$PID_FILE"
 
 sleep 2
 if kill -0 $SERVER_PID 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} WebSocket server started (PID: $SERVER_PID)"
+    echo -e "${GREEN}${NC} WebSocket server started (PID: $SERVER_PID)"
     echo -e "   Log: $LOG_DIR/websocket_server.log"
 else
-    echo -e "${RED}✗ ERROR: WebSocket server failed to start${NC}"
+    echo -e "${RED} ERROR: WebSocket server failed to start${NC}"
     echo -e "   Check log: $LOG_DIR/websocket_server.log"
 fi
 

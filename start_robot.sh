@@ -48,9 +48,9 @@ echo ""
 echo -e "${BLUE}[1/8]${NC} Sourcing ROS 2 Humble..."
 if [ -f /opt/ros/humble/setup.bash ]; then
     source /opt/ros/humble/setup.bash
-    echo -e "${GREEN}✓${NC} ROS 2 Humble sourced successfully"
+    echo -e "${GREEN}${NC} ROS 2 Humble sourced successfully"
 else
-    echo -e "${RED}✗ ERROR: ROS 2 Humble not found at /opt/ros/humble/setup.bash${NC}"
+    echo -e "${RED} ERROR: ROS 2 Humble not found at /opt/ros/humble/setup.bash${NC}"
     exit 1
 fi
 
@@ -61,9 +61,9 @@ echo -e "${BLUE}[2/8]${NC} Building ROS 2 workspace..."
 cd "$WS"
 colcon build --symlink-install 2>&1 | tee "$LOG_DIR/build.log"
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
-    echo -e "${GREEN}✓${NC} Workspace built successfully"
+    echo -e "${GREEN}${NC} Workspace built successfully"
 else
-    echo -e "${RED}✗ ERROR: Build failed. Check $LOG_DIR/build.log${NC}"
+    echo -e "${RED} ERROR: Build failed. Check $LOG_DIR/build.log${NC}"
     exit 1
 fi
 
@@ -73,9 +73,9 @@ fi
 echo -e "${BLUE}[3/8]${NC} Sourcing workspace setup..."
 if [ -f "$WS/install/setup.bash" ]; then
     source "$WS/install/setup.bash"
-    echo -e "${GREEN}✓${NC} Workspace setup sourced"
+    echo -e "${GREEN}${NC} Workspace setup sourced"
 else
-    echo -e "${RED}✗ ERROR: Workspace install/setup.bash not found${NC}"
+    echo -e "${RED} ERROR: Workspace install/setup.bash not found${NC}"
     exit 1
 fi
 
@@ -106,22 +106,20 @@ echo "$BRINGUP_PID turtlebot_bringup" >> "$PID_FILE"
 # Wait a bit to check if it started successfully
 sleep 3
 if kill -0 $BRINGUP_PID 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} TurtleBot3 bringup started (PID: $BRINGUP_PID)"
+    echo -e "${GREEN}${NC} TurtleBot3 bringup started (PID: $BRINGUP_PID)"
     echo -e "   Log: $LOG_DIR/turtlebot_bringup.log"
 else
-    echo -e "${RED}✗ ERROR: TurtleBot3 bringup failed to start${NC}"
+    echo -e "${RED} ERROR: TurtleBot3 bringup failed to start${NC}"
     echo -e "   Check log: $LOG_DIR/turtlebot_bringup.log"
     # Continue anyway to try other services
 fi
 
-# =============================================================================
+
 # Step 6: Start Bluetooth provisioning (background)
-# =============================================================================
+
 echo -e "${BLUE}[6/8]${NC} Starting Bluetooth provisioning..."
 
-# Bluetooth needs root privileges. Delegate to start_bluetooth_provisioning.sh, which
-# runs non-interactively (no password prompt) and will print clear setup instructions
-# if sudo isn't configured.
+
 BT_LOG="$LOG_DIR/bluetooth_provisioning.log"
 BT_PID_FILE="$LOG_DIR/bluetooth_provisioning.pid"
 
@@ -136,10 +134,10 @@ fi
 
 if [ "$BT_START_STATUS" -eq 0 ] && [ -n "$BT_PID" ] && kill -0 "$BT_PID" 2>/dev/null; then
     echo "$BT_PID bluetooth_provisioning" >> "$PID_FILE"
-    echo -e "${GREEN}✓${NC} Bluetooth provisioning started (PID: $BT_PID)"
+    echo -e "${GREEN}${NC} Bluetooth provisioning started (PID: $BT_PID)"
     echo -e "   Log: $BT_LOG"
 else
-    echo -e "${RED}✗ ERROR: Bluetooth provisioning failed to start${NC}"
+    echo -e "${RED} ERROR: Bluetooth provisioning failed to start${NC}"
     echo -e "   Check log: $BT_LOG"
     if [ -f "$BT_LOG" ]; then
         echo -e "   Last log lines:"
@@ -174,7 +172,7 @@ fi
 # WARNING: Robot will NOT stop for obstacles if this is set!
 FAIL_SAFE_VALUE="${DISABLE_LIDAR_FAILSAFE:-0}"
 if [ "$FAIL_SAFE_VALUE" = "1" ]; then
-    echo -e "   ${RED}⚠️ LiDAR fail-safe DISABLED - robot will NOT stop for obstacles!${NC}"
+    echo -e "   ${RED}LiDAR fail-safe DISABLED - robot will NOT stop for obstacles!${NC}"
     FAIL_SAFE_ARG="-p fail_safe_on_scan_timeout:=false"
 else
     FAIL_SAFE_ARG="-p fail_safe_on_scan_timeout:=true"
@@ -187,10 +185,10 @@ echo "$SCANNER_PID safety_scanner" >> "$PID_FILE"
 
 sleep 2
 if kill -0 $SCANNER_PID 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} Safety Scanner started (PID: $SCANNER_PID)"
+    echo -e "${GREEN}${NC} Safety Scanner started (PID: $SCANNER_PID)"
     echo -e "   Log: $LOG_DIR/safety_scanner.log"
 else
-    echo -e "${RED}✗ ERROR: Safety Scanner failed to start${NC}"
+    echo -e "${RED} ERROR: Safety Scanner failed to start${NC}"
     echo -e "   Check log: $LOG_DIR/safety_scanner.log"
 fi
 
@@ -209,10 +207,10 @@ echo "$SERVER_PID websocket_server" >> "$PID_FILE"
 
 sleep 2
 if kill -0 $SERVER_PID 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} WebSocket server started (PID: $SERVER_PID)"
+    echo -e "${GREEN}${NC} WebSocket server started (PID: $SERVER_PID)"
     echo -e "   Log: $LOG_DIR/websocket_server.log"
 else
-    echo -e "${RED}✗ ERROR: WebSocket server failed to start${NC}"
+    echo -e "${RED} ERROR: WebSocket server failed to start${NC}"
     echo -e "   Check log: $LOG_DIR/websocket_server.log"
 fi
 
