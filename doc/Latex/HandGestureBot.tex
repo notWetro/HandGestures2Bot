@@ -361,6 +361,14 @@ would have introduced a significant risk of additional errors and development de
 and development efforts were concentrated on Android, where the coexistence of MediaPipe and
 Gemma can be implemented in a technically stable and reliable manner.
 
+\subsection{Why we dropped dance moves via AI}
+
+Since the LLM we are using is not advanced enough to reliably understand the complex prompts required to trigger dance moves via voice commands,
+we decided not to implement this functionality.
+
+The LLM started returning incorrect JSON files, which interfered with the core functionality of the voice control. Additionally, once a dance move was triggered,
+it was often not cleared properly and continued to execute repeatedly, even when only a simple movement direction was given.
+
 \section{Lessons Learned}
 
 One of the key lessons learned during the project was the importance of thoroughly evaluating technology choices early on, especially when combining multiple frameworks or pipelines. In our case, the interaction between two frameworks led to unforeseen compatibility issues, particularly on the iOS platform. Future projects should include early feasibility studies or small proof-of-concept implementations to identify such risks in advance.
@@ -457,7 +465,7 @@ AI-based tools were used for the technical implementation of diagrams, formulas,
 Grammarly  were used as additional support tools, particularly for more complex or longer sentence structures. In some cases language corrections had to be revised multiple times or rewritten in documentation. The final version of each text was carefully selected and manually reviewed.
 
 \subsubsection{Gemma for Voice Command Interpretation}
-Gemma powers the voice control feature by interpreting natural language commands. 
+Gemma powers the voice control feature by interpreting natural language commands.
 It runs locally on-device using the flutter\_gemma package and a 1B instruction-tuned model (gemma3-1B-it-int4.task).
 
 The AiService sends the user's transcribed speech to Gemma with a system prompt, instructing it to return a JSON object containing a "direction" for the robot and a "response" for the user.
@@ -533,7 +541,7 @@ The complete ADR documents are maintained separately in github repository or in 
 
 \newpage
 \section{Authors Report}
-This table lists the files created or modified by the project team. 
+This table lists the files created or modified by the project team.
 \\
 \begin{longtable}{|p{0.5\textwidth}|c|c|c|c|}
 \hline
