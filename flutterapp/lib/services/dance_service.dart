@@ -64,7 +64,7 @@ class DanceService {
   Future<DanceMove?> getDanceByGesture(String gesture) async {
   final dances = await loadDanceMoves();
 
-  debugPrint("🧪 [DANCES COUNT] ${dances.length}");
+  debugPrint(" [DANCES COUNT] ${dances.length}");
   for (final d in dances) {
     debugPrint(
       "Dance='${d.name}', assignedGesture='${d.assignedGesture}'",

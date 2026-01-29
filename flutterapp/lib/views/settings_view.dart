@@ -43,7 +43,7 @@ class _SettingsViewState extends State<SettingsView> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Bluetooth WiFi Setup (NEW - Primary method)
+          // Bluetooth WiFi Setup 
           Card(
             child: ListTile(
               leading: const Icon(Icons.bluetooth_connected, color: Colors.blue),
@@ -79,7 +79,7 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           const SizedBox(height: 8),
 
-          // Additional Settings (for future use)
+          // Additional Settings 
           Card(
             child: ListTile(
               leading: const Icon(Icons.info, color: Colors.grey),
@@ -87,7 +87,6 @@ class _SettingsViewState extends State<SettingsView> {
               subtitle: const Text('App information and version'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
-                // TODO: Implement About page
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('About page coming soon...')),
                 );

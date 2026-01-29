@@ -528,4 +528,94 @@ This section documents the key architectural decisions made during the developme
 \vspace{0.5em}
 The complete ADR documents are maintained separately in github repository and serve as a detailed reference for future development and architectural evolution of.
 
+\newpage
+\section{Authors Report}
+This table lists the files created or modified by the project team. 
+\\
+\begin{longtable}{|p{0.5\textwidth}|c|c|c|c|}
+\hline
+\textbf{File Path} & \textbf{Niklas} & \textbf{Hikmet} & \textbf{Bilgehan} & \textbf{Okan} \\
+\hline
+\endhead
+\hline
+\endfoot
+
+
+\hline
+\multicolumn{5}{|l|}{\textbf{Shell Scripts}} \\
+\hline
+\texttt{- start\_bluetooth\_provisioning.sh} & & & & \\
+\texttt{- start\_boot.sh} & & & & \\
+\texttt{- start\_robot.sh} & & & & \\
+\texttt{- start\_server.sh} & & & & \\
+\texttt{- start\_sim.sh} & & & & \\
+\texttt{- stop\_robot.sh} & & & & \\
+\texttt{- stop\_sim.sh} & & & & \\
+\texttt{- test\_robot.sh} & & & & \\
+\texttt{- test\_sim.sh} & & & & \\
+\hline
+\multicolumn{5}{|l|}{\textbf{Flutter Application (Dart)}} \\
+\hline
+\texttt{- flutterapp\slash pubspec.yaml} & & Author & & \\
+\texttt{- flutterapp\slash lib\slash main.dart} & & Coauthor & & \\
+\texttt{- flutterapp\slash lib\slash models\slash dance\_move.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash models\slash obstacle\_status.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash services\slash dance\_music\_controller.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash services\slash dance\_service.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash services\slash gesture\_service.dart} & & Author & & \\
+\texttt{- flutterapp\slash lib\slash services\slash native\_bluetooth\_service.dart} & & Coauthor & & \\
+\texttt{- flutterapp\slash lib\slash services\slash obstacle\_sensor\_service.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash services\slash robot\_service.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash services\slash voice\_ai\_service\slash ai\_service.dart} & & Author & & \\
+\texttt{- flutterapp\slash lib\slash services\slash voice\_ai\_service\slash eleven\_labs\_service.dart} & & Author & & \\
+\texttt{- flutterapp\slash lib\slash services\slash voice\_ai\_service\slash tts\_service.dart} & & Author & & \\
+\texttt{- flutterapp\slash lib\slash services\slash voice\_ai\_service\slash voice\_service.dart} & & Author & & \\
+\texttt{- flutterapp\slash lib\slash views\slash camera\_view.dart} & & Coauthor & & \\
+\texttt{- flutterapp\slash lib\slash views\slash obstacle\_visualization\_widget.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash views\slash settings\_pages\slash bluetooth\_setup\_page.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash views\slash settings\_pages\slash create\_dance\_view.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash views\slash settings\_pages\slash hand\_gestures\_page.dart} & & Coauthor & & \\
+\texttt{- flutterapp\slash lib\slash views\slash settings\_pages\slash robot\_connection\_page.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash views\slash settings\_pages\slash save\_gesture\_view.dart} & & Coauthor & & \\
+\texttt{- flutterapp\slash lib\slash views\slash settings\_view.dart} & & & & \\
+\texttt{- flutterapp\slash lib\slash views\slash voice\_view.dart} & & Author & & \\
+\hline
+\multicolumn{5}{|l|}{\textbf{Flutter Application (Kotlin/Android)}} \\
+\hline
+\texttt{- flutterapp\slash android\slash app\slash src\slash main\slash kotlin\slash com\slash example\slash flutterapp\slash DanceStore.kt} & & & & \\
+\texttt{- flutterapp\slash android\slash app\slash src\slash main\slash kotlin\slash com\slash example\slash flutterapp\slash GestureRecognizer.kt} & & Author & & \\
+\texttt{- flutterapp\slash android\slash app\slash src\slash main\slash kotlin\slash com\slash example\slash flutterapp\slash HandLandmarkerHelper.kt} & & Author & & \\
+\texttt{- flutterapp\slash android\slash app\slash src\slash main\slash kotlin\slash com\slash example\slash flutterapp\slash MainActivity.kt} & & Author & & \\
+\texttt{- flutterapp\slash android\slash app\slash src\slash main\slash kotlin\slash com\slash example\slash flutterapp\slash MyCameraView.kt} & & Author & & \\
+\texttt{- flutterapp\slash android\slash app\slash src\slash main\slash kotlin\slash com\slash example\slash flutterapp\slash MyCameraViewFactory.kt} & & Author & & \\
+\texttt{- flutterapp\slash android\slash app\slash src\slash main\slash kotlin\slash com\slash example\slash flutterapp\slash OverlayView.kt} & & Author & & \\
+\hline
+\multicolumn{5}{|l|}{\textbf{Flutter Application (Swift/iOS)}} \\
+\hline
+\texttt{- flutterapp\slash ios\slash BluetoothProvisioningService.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash CameraViewController.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash DanceStore.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash GestureRecognizer.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash GestureStore.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash HandLandmarkerService.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash HandOverlayView.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash SwiftCameraPlatformView.swift} & & & & \\
+\texttt{- flutterapp\slash ios\slash SwiftCameraViewFactory.swift} & & & & \\
+\hline
+\multicolumn{5}{|l|}{\textbf{ROS2 Workspace (Python)}} \\
+\hline
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash \_\_init\_\_.py} & & & & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash gesture\_handler.py} & & & & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash safety\_scanner.py} & & & & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash server.py} & & & & \\
+\texttt{- ros2\_ws\slash src\slash hand\_gestures\_bot\slash hand\_gestures\_bot\slash turtlebot\_controller.py} & & & & \\
+\hline
+\multicolumn{5}{|l|}{\textbf{Provisioning Scripts (Python)}} \\
+\hline
+\texttt{- provisioning\slash bluetooth\_wifi\slash ble\_basic\_check.py} & & & & \\
+\texttt{- provisioning\slash bluetooth\_wifi\slash bluetooth\_provisioning.py} & & & & \\
+\texttt{- provisioning\slash bluetooth\_wifi\slash scan\_ble.py} & & & & \\
+
+\end{longtable}
+
 \end{document}

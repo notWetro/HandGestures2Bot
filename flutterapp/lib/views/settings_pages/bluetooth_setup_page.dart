@@ -380,7 +380,6 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
 
             const SizedBox(height: 20),
 
-            // Step 1: Scan for devices
             Text(
               "Step 1: Scan for Devices",
               style: Theme.of(context).textTheme.titleLarge,
@@ -454,7 +453,6 @@ class _BluetoothSetupPageState extends State<BluetoothSetupPage> {
 
             const SizedBox(height: 30),
 
-            // Step 2: WiFi Credentials
             if (_isConnected) ...[
               Text(
                 "Step 2: Enter WiFi Credentials",
