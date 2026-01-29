@@ -208,12 +208,14 @@ The focus is on interactions between user/app/robot/network and not on internal 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{figures/wireframe_placeholder.png}
-    \caption{Wireframe Placeholder -- Bluetooth Setup and Gesture Control}
+    \caption{Wireframe}
 \end{figure}
 
 % =================================================
 % 4. ARCHITECTURE (INTERNAL)
 % =================================================
+
+\newpage
 \section{Architecture (Internal)}
 
 This section describes the internal structure and interactions of the system.
@@ -232,7 +234,7 @@ The system consists of multiple major parts:
 	\item \textbf{Safety Layer (LiDAR):} Obstacle detection and motion filtering.
 \end{itemize}
 
-\newpage
+
 \subsection{Dynamic View (Key Internal Interactions)}
 This section describes the most important runtime interactions between the main components of the system.
 
@@ -381,7 +383,6 @@ A related lesson emerged from the integration of AI functionality. The applicati
 
 Additionally, the project emphasized the value of iterative testing and early integration. Several issues only became apparent once different system components were combined. Continuous integration and incremental testing would help detect such problems earlier in future projects.
 
-Finally, from a team perspective, we learned the importance of clear communication and documentation. Regular alignment on technical decisions and explicit documentation of assumptions helped reduce misunderstandings and improved collaboration throughout the project.
 \newpage
 \section{Evaluation}
 
@@ -422,22 +423,25 @@ Table~\ref{tab:evaluation} summarizes the extent to which the implemented featur
 
 \subsection{Sprint History}
 
-The development of the \textit{HandGestures2Bot} project followed an iterative, sprint-based workflow inspired by agile methodologies. Task planning and progress tracking were organized using a Trello board, which was structured into product backlog, sprint backlog, in-progress, done, impediments, and risks columns.
+The \textit{HandGestures2Bot} project was developed using an iterative, sprint-based workflow inspired by agile methodologies. Planning and progress tracking were organized via a Trello board structured into backlog, in-progress, done, impediments, and risks columns. The sprint history below is presented chronologically, from earliest to latest.
 
-\subsubsection{Initial Planning and Concept Phase}
-During the initial sprints, the team focused on defining the project vision, identifying core use cases, and assigning group roles. Key conceptual tasks included the definition of gesture-based robot control scenarios, safety requirements such as emergency stopping, and the selection of suitable technologies. At this stage, the Raspberry Pi and ROS2 environment were prepared, and the overall communication pipeline (mobile client → WebSocket → ROS2 → robot) was specified.
+\subsubsection{Sprint 1 -- Project Concept and Planning (October 2025)}
+The initial sprint focused on defining the project vision, core use cases, and system architecture. Gesture-based robot control scenarios and safety requirements such as an emergency stop were specified. Key technology decisions were made, including Flutter for the mobile app, MediaPipe for gesture recognition, and ROS2 for robot control. The overall communication pipeline from mobile client to robot was defined.
 
-\subsubsection{Core Implementation Sprints}
-Subsequent sprints concentrated on the technical implementation of the system. Major completed tasks included setting up the ROS2 Humble environment, deploying TurtleBot3 both in simulation and on real hardware, and implementing a WebSocket server on the embedded side. In parallel, the mobile client was developed using Flutter, and MediaPipe was integrated to enable real-time hand gesture recognition on the smartphone. A crucial milestone was the successful transmission of gesture commands as JSON messages over WebSocket and their conversion into ROS2 \texttt{/cmd\_vel} velocity commands. Safety mechanisms such as a watchdog-based emergency stop were implemented to ensure that the robot halts automatically in case of connection loss or missing commands.
+\subsubsection{Sprint 2 -- Gesture Recognition and Mobile Application (November 2025)}
+This sprint concentrated on developing the Flutter-based mobile application and integrating MediaPipe for real-time hand gesture recognition using native Android and iOS modules. Basic gestures such as fist and open palm were implemented and validated. Initial WebSocket communication from the app was prepared, and early latency and performance challenges were identified.
 
-\subsubsection{Integration and Testing Phase}
-Later sprints focused on system integration and validation. Gesture-to-motion mapping was refined, network latency was tested under Wi-Fi conditions, and the full control pipeline was verified both in Gazebo simulation and on a physical TurtleBot3 robot. Particular attention was paid to reliability, command frequency, and fail-safe behavior to prevent unintended robot movement.
+\subsubsection{Sprint 3 -- ROS2 Backend and WebSocket Control (Late November 2025)}
+The focus shifted to the robot-side implementation. A custom ROS2 \texttt{ament\_python} package was created, including a WebSocket server that converts incoming gesture commands into \texttt{/cmd\_vel} messages using \texttt{geometry\_msgs/Twist}. Gesture-based control was successfully tested in Gazebo simulation and on real TurtleBot3 hardware. A watchdog-based emergency stop mechanism was implemented for safety.
 
-\subsubsection{Completed Features and Improvements}
-At the time of documentation, the core objectives of gesture-based robot control via WebSocket were fully achieved. Tasks related to robot control, WebSocket communication, gesture recognition, and emergency stopping were marked as completed. Overall for the future the crossplatform for the application can be implemented with another pipeline due to absence of IOS part. Additionaly the voice command for dancing  could be also implemented for the future with advanced llm ai bot.
+\subsubsection{Sprint 4 -- Integration and Hardware Testing (December 2025)}
+This sprint emphasized system integration and validation. The TurtleBot3 hardware environment was prepared and tested, including network configuration and deployment stability. The complete gesture-to-motion pipeline was verified under real Wi-Fi conditions. Network instability and power-related issues were identified, and mitigation strategies were planned.
+
+\subsubsection{Sprint 5 -- Extension Analysis and Future Work (December 2025)}
+The final sprint explored system extensibility, particularly the integration of voice-based control. Architectural requirements and limitations for cloud-based voice services were analyzed. While voice control was not fully implemented, the existing architecture was confirmed to be extensible. At this stage, all core objectives for gesture-based robot control were completed, and remaining features were classified as future work.
 
 
-\subsubsection{Screenshots Reference}
+\subsection{Screenshots Reference}
 Screenshots are stored in a separate \texttt{screenshots/} directory.
 In the main document, screenshots are not included to avoid bloating.
 
